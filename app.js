@@ -140,6 +140,38 @@ function fakeAIReply(prompt) {
   }
 }
 
+function generateAIReplies(prompt) {
+  // Generate all three types of responses
+  const textReply = {
+    type: "ai-text",
+    payload: `You asked: "${prompt}". Here's a brief idea: This is a simulated AI response that provides helpful information about your query.`,
+  }
+
+  const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+    <rect width="200" height="120" fill="#e8f4f8"/>
+    <circle cx="100" cy="60" r="30" fill="#0070f3" opacity="0.3"/>
+    <text x="100" y="65" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#333">AI Generated Image</text>
+  </svg>`
+  const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgData)}`
+  const imageReply = {
+    type: "ai-image",
+    text: "I've generated a visual representation to help illustrate the concept. This visual combines key elements to provide a clearer understanding of your inquiry.",
+    payload: dataUrl,
+  }
+
+  const values = prompt
+    .split("")
+    .slice(0, 6)
+    .map((c, i) => (c.charCodeAt(0) % 50) + 20)
+  const chartReply = {
+    type: "ai-chart",
+    text: "Here's a data visualization showing relevant metrics. The chart breaks down the information to help you see patterns and trends at a glance.",
+    payload: values,
+  }
+
+  return [textReply, imageReply, chartReply]
+}
+
 function render() {
   // Clear
   cardsContainer.innerHTML = ""
@@ -303,8 +335,12 @@ function handleFollowUp(parentId, text) {
   const userId = addCard("user", text.trim(), parentId, childX, childY)
 
   setTimeout(() => {
-    const aiReply = fakeAIReply(text)
-    addCard(aiReply.type, aiReply.payload, userId, childX + 320, childY)
+    const aiReplies = generateAIReplies(text)
+    let offsetX = 0
+    aiReplies.forEach((reply) => {
+      addCard(reply.type, reply.payload, userId, childX + 350 + offsetX, childY)
+      offsetX += 330
+    })
   }, 100)
 }
 
