@@ -4,6 +4,7 @@ let state = {
   offsetX: 0,
   offsetY: 0,
   nextId: 1,
+  zoom: 1,
 }
 
 // DOM elements
@@ -13,6 +14,9 @@ const connectorsContainer = document.getElementById("connectors")
 const globalInput = document.getElementById("global-input")
 const sendBtn = document.getElementById("send-btn")
 const resetBtn = document.getElementById("reset-btn")
+const zoomInBtn = document.getElementById("zoom-in-btn")
+const zoomOutBtn = document.getElementById("zoom-out-btn")
+const zoomLevel = document.getElementById("zoom-level")
 
 // Initialize
 init()
@@ -27,6 +31,8 @@ function init() {
   })
 
   resetBtn.addEventListener("click", handleReset)
+  zoomInBtn.addEventListener("click", handleZoomIn)
+  zoomOutBtn.addEventListener("click", handleZoomOut)
 
   setupBoardPanning()
 }
@@ -38,15 +44,19 @@ function handleGlobalSend() {
   globalInput.value = ""
 
   // Create user card in viewport center
-  const viewportCenterX = window.innerWidth / 2 - state.offsetX - 140
+  const viewportCenterX = window.innerWidth / 2 - state.offsetX - 150
   const viewportCenterY = window.innerHeight / 2 - state.offsetY - 100
 
   const userId = addCard("user", text, null, viewportCenterX, viewportCenterY)
 
-  // Create AI reply
+  // Create three AI response cards with different types
   setTimeout(() => {
-    const aiReply = fakeAIReply(text)
-    addCard(aiReply.type, aiReply.payload, userId, viewportCenterX + 320, viewportCenterY)
+    const aiReplies = generateAIReplies(text)
+    let offsetX = 0
+    aiReplies.forEach((reply) => {
+      addCard(reply.type, reply.payload, userId, viewportCenterX + 350 + offsetX, viewportCenterY)
+      offsetX += 330
+    })
   }, 100)
 }
 
@@ -55,9 +65,33 @@ function handleReset() {
     state.cards = []
     state.offsetX = 0
     state.offsetY = 0
+    state.zoom = 1
     save()
     render()
+    updateZoomDisplay()
   }
+}
+
+function handleZoomIn() {
+  state.zoom = Math.min(3, state.zoom * 1.2)
+  cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+  connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+  updateLines()
+  updateZoomDisplay()
+  save()
+}
+
+function handleZoomOut() {
+  state.zoom = Math.max(0.5, state.zoom / 1.2)
+  cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+  connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+  updateLines()
+  updateZoomDisplay()
+  save()
+}
+
+function updateZoomDisplay() {
+  zoomLevel.textContent = Math.round(state.zoom * 100) + "%"
 }
 
 function addCard(type, payload, parentId, x, y) {
@@ -111,9 +145,9 @@ function render() {
   cardsContainer.innerHTML = ""
   connectorsContainer.innerHTML = ""
 
-  // Apply board offset
-  cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px)`
-  connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px)`
+  // Apply board offset and zoom
+  cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+  connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
 
   // Render cards
   state.cards.forEach((card) => {
@@ -123,6 +157,7 @@ function render() {
 
   // Render connectors
   updateLines()
+  updateZoomDisplay()
 }
 
 function createCardElement(card) {
@@ -343,8 +378,8 @@ function setupBoardPanning() {
     state.offsetX = startOffsetX + (e.clientX - startX)
     state.offsetY = startOffsetY + (e.clientY - startY)
 
-    cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px)`
-    connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px)`
+    cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+    connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
 
     updateLines()
   })
@@ -354,6 +389,24 @@ function setupBoardPanning() {
       isPanning = false
       board.classList.remove("panning")
       save()
+    }
+  })
+
+  // Zoom with mouse wheel
+  board.addEventListener("wheel", (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      
+      const delta = e.deltaY > 0 ? 0.9 : 1.1
+      const newZoom = Math.max(0.5, Math.min(3, state.zoom * delta))
+      
+      if (newZoom !== state.zoom) {
+        state.zoom = newZoom
+        cardsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+        connectorsContainer.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`
+        updateLines()
+        save()
+      }
     }
   })
 }
