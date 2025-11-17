@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { GraphCanvas } from './GraphCanvas';
 import { NodeDetailsCard } from './NodeDetailsCard';
 import type { SimulationNode, SimulationLink } from '../lib/graphEngine';
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface GraphPanelProps {
   nodes: SimulationNode[];

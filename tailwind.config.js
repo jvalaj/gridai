@@ -7,19 +7,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"SF Pro Display"',
-          '"SF Pro Text"',
-          'system-ui',
-          '-apple-system',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
-          'sans-serif',
+        mono: [
+          'Courier New',
+          'Consolas',
+          'Monaco',
+          'Lucida Console',
+          'monospace',
         ],
+      },
+      colors: {
+        'jarvis-blue': '#06B6D4',
+        'jarvis-dark': '#0a0e1a',
       },
     },
   },

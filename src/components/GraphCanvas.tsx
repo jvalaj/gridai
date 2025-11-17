@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationNode, SimulationLink } from '../lib/graphEngine';
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface GraphCanvasProps {
   nodes: SimulationNode[];
@@ -162,48 +162,258 @@ export function GraphCanvas({
     const svg = connectorsRef.current;
     svg.innerHTML = '';
 
-    let linesDrawn = 0;
-    links.forEach((link) => {
-      if (link.type !== 'chronological') return; // Only show chronological links for now
-      
+    // Group links by node pairs to detect bidirectional connections
+    const linkPairs = new Map<string, Array<{ link: SimulationLink; index: number }>>();
+    
+    links.forEach((link, index) => {
       const source = link.source as SimulationNode;
       const target = link.target as SimulationNode;
-      const sourcePos = cardPositions.get(source.id);
-      const targetPos = cardPositions.get(target.id);
       
-      if (!sourcePos || !targetPos) {
-        return;
+      // Create a consistent key for the node pair (sorted to group bidirectional links)
+      const pairKey = [source.id, target.id].sort().join('->');
+      
+      if (!linkPairs.has(pairKey)) {
+        linkPairs.set(pairKey, []);
       }
-      
-      linesDrawn++;
+      linkPairs.get(pairKey)!.push({ link, index });
+    });
 
-      // Calculate connection points - tree structure: from bottom of parent to top of child
-      const cardWidth = 300;
-      const cardHeaderHeight = 50;
+    let linesDrawn = 0;
+    
+    linkPairs.forEach((pairLinks) => {
+      // Determine if we have multiple links between the same nodes
+      const hasMultipleLinks = pairLinks.length > 1;
       
-      // Get actual card height from message content
-      const sourceMessage = getMessage(source.id);
-      const sourceContentHeight = sourceMessage ? Math.max(80, (sourceMessage.content.length / 50) * 20) : 100;
-      
-      // Source: bottom center of parent card (accounting for actual content height)
-      const sourceX = sourcePos.x + cardWidth / 2;
-      const sourceY = sourcePos.y + cardHeaderHeight + sourceContentHeight;
-      
-      // Target: top center of child card
-      const targetX = targetPos.x + cardWidth / 2;
-      const targetY = targetPos.y;
-      
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', String(sourceX));
-      line.setAttribute('y1', String(sourceY));
-      line.setAttribute('x2', String(targetX));
-      line.setAttribute('y2', String(targetY));
-      line.setAttribute('stroke', '#ff0000'); // Bright red for debugging
-      line.setAttribute('stroke-width', '3');
-      line.setAttribute('fill', 'none');
-      line.setAttribute('opacity', '0.8');
-      line.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(line);
+      pairLinks.forEach(({ link }, linkIndex) => {
+        const source = link.source as SimulationNode;
+        const target = link.target as SimulationNode;
+        const sourcePos = cardPositions.get(source.id);
+        const targetPos = cardPositions.get(target.id);
+        
+        if (!sourcePos || !targetPos) {
+          return;
+        }
+        
+        linesDrawn++;
+
+        // Calculate connection points at card borders
+        const cardWidth = 300;
+        const cardHeaderHeight = 50;
+        const cardBorderRadius = 8; // Match the rounded corners
+        
+        // Get actual card height from message content
+        const sourceMessage = getMessage(source.id);
+        const targetMessage = getMessage(target.id);
+        const sourceContentHeight = sourceMessage ? Math.max(80, (sourceMessage.content.length / 50) * 20) : 100;
+        const targetContentHeight = targetMessage ? Math.max(80, (targetMessage.content.length / 50) * 20) : 100;
+        
+        const sourceCardHeight = cardHeaderHeight + sourceContentHeight;
+        const targetCardHeight = cardHeaderHeight + targetContentHeight;
+        
+        // Calculate card centers
+        const sourceCenterX = sourcePos.x + cardWidth / 2;
+        const sourceCenterY = sourcePos.y + sourceCardHeight / 2;
+        const targetCenterX = targetPos.x + cardWidth / 2;
+        const targetCenterY = targetPos.y + targetCardHeight / 2;
+        
+        // Calculate direction from source center to target center
+        const dx = targetCenterX - sourceCenterX;
+        const dy = targetCenterY - sourceCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance === 0) return; // Skip if cards are at same position
+        
+        // Normalize direction
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        
+        // Function to find intersection point with rectangle border
+        const getRectBorderIntersection = (
+          centerX: number,
+          centerY: number,
+          rectX: number,
+          rectY: number,
+          rectWidth: number,
+          rectHeight: number,
+          dirX: number,
+          dirY: number
+        ): [number, number] => {
+          // Calculate which edge the line intersects
+          const halfWidth = rectWidth / 2;
+          const halfHeight = rectHeight / 2;
+          
+          // Check intersection with each edge
+          let intersectX = centerX;
+          let intersectY = centerY;
+          
+          if (Math.abs(dirX) > Math.abs(dirY)) {
+            // More horizontal - will hit left or right edge
+            if (dirX > 0) {
+              // Right edge
+              intersectX = rectX + rectWidth;
+              intersectY = centerY + (intersectX - centerX) * (dirY / dirX);
+            } else {
+              // Left edge
+              intersectX = rectX;
+              intersectY = centerY + (intersectX - centerX) * (dirY / dirX);
+            }
+          } else {
+            // More vertical - will hit top or bottom edge
+            if (dirY > 0) {
+              // Bottom edge
+              intersectY = rectY + rectHeight;
+              intersectX = centerX + (intersectY - centerY) * (dirX / dirY);
+            } else {
+              // Top edge
+              intersectY = rectY;
+              intersectX = centerX + (intersectY - centerY) * (dirX / dirY);
+            }
+          }
+          
+          return [intersectX, intersectY];
+        };
+        
+        // Get intersection points at card borders
+        const [sourceX, sourceY] = getRectBorderIntersection(
+          sourceCenterX,
+          sourceCenterY,
+          sourcePos.x,
+          sourcePos.y,
+          cardWidth,
+          sourceCardHeight,
+          dirX,
+          dirY
+        );
+        
+        const [targetX, targetY] = getRectBorderIntersection(
+          targetCenterX,
+          targetCenterY,
+          targetPos.x,
+          targetPos.y,
+          cardWidth,
+          targetCardHeight,
+          -dirX, // Opposite direction for target
+          -dirY
+        );
+        
+        const isSimilarity = link.type === 'similarity';
+        
+        // Determine if this link should be curved
+        const shouldCurve = hasMultipleLinks || isSimilarity;
+        
+        if (shouldCurve) {
+          // Use curved path (cubic bezier for smoother, more visible curves)
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          
+          // Calculate control points for cubic bezier
+          const dx = targetX - sourceX;
+          const dy = targetY - sourceY;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          
+          if (length > 0) {
+            // Offset for curve (larger for more visible curve)
+            const curveOffset = hasMultipleLinks ? (linkIndex === 0 ? 120 : -120) : 80;
+            
+            // Calculate perpendicular offset
+            const perpX = -dy / length;
+            const perpY = dx / length;
+            
+            // Two control points for cubic bezier (creates smoother, more visible S-curve)
+            const controlDist = length * 0.4; // Control points at 40% of distance
+            
+            const control1X = sourceX + dx * 0.25 + perpX * curveOffset;
+            const control1Y = sourceY + dy * 0.25 + perpY * curveOffset;
+            const control2X = sourceX + dx * 0.75 + perpX * curveOffset;
+            const control2Y = sourceY + dy * 0.75 + perpY * curveOffset;
+            
+            // Create smooth cubic bezier curve
+            const pathData = `M ${sourceX} ${sourceY} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${targetX} ${targetY}`;
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'connector-line');
+            path.setAttribute('stroke-width', '2');
+            if (isSimilarity) {
+              path.setAttribute('stroke-dasharray', '5,5');
+              path.style.opacity = '0.4';
+            }
+            
+            svg.appendChild(path);
+
+            // Endpoint nodes (small circles)
+            const sCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            sCircle.setAttribute('cx', String(sourceX));
+            sCircle.setAttribute('cy', String(sourceY));
+            sCircle.setAttribute('r', '2');
+            sCircle.setAttribute('class', 'connector-node');
+            if (isSimilarity) sCircle.style.opacity = '0.7';
+            svg.appendChild(sCircle);
+
+            const tCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            tCircle.setAttribute('cx', String(targetX));
+            tCircle.setAttribute('cy', String(targetY));
+            tCircle.setAttribute('r', '2');
+            tCircle.setAttribute('class', 'connector-node');
+            if (isSimilarity) tCircle.style.opacity = '0.7';
+            svg.appendChild(tCircle);
+            
+            // Add arrowhead for curved paths - calculate angle from last control point
+            const arrowSize = 10;
+            const angle = Math.atan2(targetY - control2Y, targetX - control2X);
+            
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            const arrowPoints = [
+              [targetX, targetY],
+              [targetX - arrowSize * Math.cos(angle - Math.PI / 6), targetY - arrowSize * Math.sin(angle - Math.PI / 6)],
+              [targetX - arrowSize * Math.cos(angle + Math.PI / 6), targetY - arrowSize * Math.sin(angle + Math.PI / 6)]
+            ];
+            arrow.setAttribute('points', arrowPoints.map(p => p.join(',')).join(' '));
+            arrow.setAttribute('class', 'connector-line');
+            if (isSimilarity) {
+              arrow.style.opacity = '0.4';
+            }
+            svg.appendChild(arrow);
+          }
+        } else {
+          // Use straight line for single chronological links
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(sourceX));
+          line.setAttribute('y1', String(sourceY));
+          line.setAttribute('x2', String(targetX));
+          line.setAttribute('y2', String(targetY));
+          line.setAttribute('class', 'connector-line');
+          line.setAttribute('stroke-width', '2');
+          
+          svg.appendChild(line);
+
+          // Endpoint nodes (small circles)
+          const sCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          sCircle.setAttribute('cx', String(sourceX));
+          sCircle.setAttribute('cy', String(sourceY));
+          sCircle.setAttribute('r', '2');
+          sCircle.setAttribute('class', 'connector-node');
+          svg.appendChild(sCircle);
+
+          const tCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          tCircle.setAttribute('cx', String(targetX));
+          tCircle.setAttribute('cy', String(targetY));
+          tCircle.setAttribute('r', '2');
+          tCircle.setAttribute('class', 'connector-node');
+          svg.appendChild(tCircle);
+          
+          // Add arrowhead
+          const arrowSize = 10;
+          const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
+          
+          const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          const arrowPoints = [
+            [targetX, targetY],
+            [targetX - arrowSize * Math.cos(angle - Math.PI / 6), targetY - arrowSize * Math.sin(angle - Math.PI / 6)],
+            [targetX - arrowSize * Math.cos(angle + Math.PI / 6), targetY - arrowSize * Math.sin(angle + Math.PI / 6)]
+          ];
+          arrow.setAttribute('points', arrowPoints.map(p => p.join(',')).join(' '));
+          arrow.setAttribute('class', 'connector-line');
+          svg.appendChild(arrow);
+        }
+      });
     });
     
     if (linesDrawn > 0) {
@@ -518,7 +728,7 @@ export function GraphCanvas({
 
               {/* Card Body */}
               <div className="card-body" onClick={() => onNodeClick(node.id)}>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
                   {message.content}
                 </p>
               </div>

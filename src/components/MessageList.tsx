@@ -6,7 +6,7 @@
 
 import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface MessageListProps {
   messages: Message[];
@@ -24,8 +24,8 @@ export function MessageList({ messages }: MessageListProps) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400">
-        <p className="text-sm">Start a conversation...</p>
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <p className="text-sm font-medium">Start a conversation...</p>
       </div>
     );
   }

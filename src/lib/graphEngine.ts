@@ -58,11 +58,11 @@ export function createSimulation(
         })
         .strength(0.8) // Stronger links to maintain tree structure
     )
-    .force('charge', forceManyBody().strength(-200)) // Reduced charge to allow closer spacing
+    .force('charge', forceManyBody().strength(-300)) // Stronger repulsion to prevent overlap
     .force('center', forceCenter(0, 0))
     .force(
       'collision',
-      forceCollide().radius(160).strength(0.9) // Card width/2 + padding
+      forceCollide().radius(200).strength(1.0) // Card width/2 + larger padding to prevent overlap
     )
     .alphaDecay(0.02) // Slower decay for smoother animation
     .velocityDecay(0.4)

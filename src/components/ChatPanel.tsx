@@ -6,7 +6,7 @@
 
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -16,7 +16,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ messages, onSend, isLoading }: ChatPanelProps) {
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-100">
+    <div className="flex flex-col h-full bg-black/40 backdrop-blur-sm border-r border-white/10">
       <div className="flex-1 min-h-0 overflow-hidden">
         <MessageList messages={messages} />
       </div>

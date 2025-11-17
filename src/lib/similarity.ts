@@ -10,7 +10,7 @@
  * - Only create edges above a similarity threshold (e.g., 0.7)
  */
 
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 /**
  * Stub function that computes a fake embedding vector for a message.

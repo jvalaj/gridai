@@ -5,7 +5,7 @@
  * Similar to Obsidian's note-taking approach where ideas are split into separate nodes.
  */
 
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 /**
  * Splits a response into multiple message chunks.

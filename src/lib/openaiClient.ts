@@ -15,6 +15,9 @@
 import type { Role } from '../types';
 
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// Force stub mode via env flag (never call API when true)
+// Set VITE_STUB_MODE=true in .env to enable; default is false
+const STUB_MODE = String(import.meta.env.VITE_STUB_MODE || '').toLowerCase() === 'true';
 const MODEL = 'gpt-4o-mini'; // Lightweight model for MVP
 
 const DIAGRAM_SYSTEM_PROMPT = `You are a diagram generator for developers.
@@ -50,9 +53,9 @@ Guidelines:
 export async function sendChat(
   messages: { role: Role; content: string }[]
 ): Promise<string> {
-  // Stub mode: return fake response if no API key
-  if (!API_KEY || API_KEY === '') {
-    console.warn('⚠️ OpenAI API key not found. Using stub mode.');
+  // Stub mode: return fake response if forced or no API key
+  if (STUB_MODE || !API_KEY || API_KEY === '') {
+    console.warn('⚠️ Using stub mode (no real API calls will be made).');
     return generateStubDiagram(messages);
   }
 

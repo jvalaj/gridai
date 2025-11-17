@@ -4,7 +4,7 @@
  * Renders a single chat message with Apple-like styling.
  */
 
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,21 +15,21 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300`}
     >
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm transition-all hover:shadow-md ${
+        className={`max-w-[75%] px-4 py-3 transition-all border rounded-xl ${
           isUser
-            ? 'bg-blue-500 text-white'
-            : 'bg-white text-gray-900 border border-gray-100'
+            ? 'bg-white/5 text-white border-white/15'
+            : 'bg-white/3 text-white/90 border-white/10'
         }`}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+        <p className="text-[14px] leading-relaxed whitespace-pre-wrap wrap-break-word">
           {message.content}
         </p>
         <span
-          className={`text-xs mt-1 block ${
-            isUser ? 'text-blue-100' : 'text-gray-400'
+          className={`text-[11px] mt-1.5 block font-medium ${
+            isUser ? 'text-white/50' : 'text-white/40'
           }`}
         >
           {new Date(message.createdAt).toLocaleTimeString([], {

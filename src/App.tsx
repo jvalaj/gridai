@@ -15,30 +15,34 @@
 import { useChat } from './hooks/useChat';
 import { ChatPanel } from './components/ChatPanel';
 import { DiagramPanel } from './components/DiagramPanel';
+import logoUrl from './gridailogo.png';
 
 function App() {
   const { messages, isLoading, error, sendMessage, clearMessages } = useChat();
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#f5f5f7] overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-black overflow-hidden">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
-        <h1 className="text-lg font-medium text-gray-900">grid.</h1>
+      <header className="flex items-center justify-between px-8 py-4 bg-black/60 backdrop-blur-xl border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <img src={logoUrl} alt="grid logo" className="h-6 w-6 rounded-full border border-white" />
+          <h1 className="text-lg font-semibold text-white tracking-tight">Grid</h1>
+        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={clearMessages}
-            className="px-3 py-1 text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-1.5 text-xs font-medium text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-full transition-all"
           >
-            Clear All
+            Clear All Messages
           </button>
-          <p className="text-xs text-gray-400">Powered by OpenAI</p>
+          <p className="text-xs text-white/40 font-medium">Powered by OpenAI</p>
         </div>
       </header>
 
       {/* Error banner */}
       {error && (
-        <div className="px-8 py-2 bg-red-50 border-b border-red-100">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="px-8 py-3 bg-white/5 backdrop-blur-sm border-b border-white/10">
+          <p className="text-sm text-white/80">{error}</p>
         </div>
       )}
 
@@ -55,7 +59,7 @@ function App() {
 
         {/* Diagram panel */}
         <div className="flex-1 hidden md:block">
-          <DiagramPanel messages={messages} />
+          <DiagramPanel messages={messages} onQuickPrompt={sendMessage} />
         </div>
       </main>
     </div>
