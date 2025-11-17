@@ -14,9 +14,10 @@ interface DiagramPanelProps {
   isMainCanvas?: boolean;
   selectedMessageId: string | null;
   onSelectMessage: (id: string) => void;
+  isLoading?: boolean;
 }
 
-export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, selectedMessageId, onSelectMessage }: DiagramPanelProps) {
+export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, selectedMessageId, onSelectMessage, isLoading = false }: DiagramPanelProps) {
 
   // Get assistant messages with diagram specs
   const diagramMessages = messages.filter(
@@ -106,12 +107,21 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
   // Main canvas mode - show full diagram with starter prompts
   return (
     <div className="relative h-full bg-black overflow-hidden">
+      {/* Loading overlay with blur */}
+      {isLoading && (
+        <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-white/80 rounded-full animate-spin" />
+            <p className="text-sm text-white/70 font-medium">Generating diagram...</p>
+          </div>
+        </div>
+      )}
       {!hasDiagram && (
         <div className="h-full w-full flex items-center justify-center px-6">
           <div className="max-w-3xl w-full text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <img src={logoUrl} alt="grid logo" className="h-16 w-16 rounded-full bg-white" />
-              <h1 className="text-4xl font-semibold text-white tracking-tight">Grid.</h1>
+              <h1 className="text-4xl text-white tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 900 }}>Grid.</h1>
             </div>
             <p className="text-sm text-white/60 mb-8">Pick a starting point or ask anything.</p>
 

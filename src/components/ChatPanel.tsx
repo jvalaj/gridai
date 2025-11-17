@@ -16,9 +16,9 @@ interface ChatPanelProps {
 
 export function ChatPanel({ messages, onSend, isLoading }: ChatPanelProps) {
   return (
-    <div className="flex flex-col h-full bg-black backdrop-blur-sm border-r border-white/10">
+    <div className="flex flex-col h-full bg-black/20 backdrop-blur-sm border-r border-white/10">
       <div className="flex-1 min-h-0 overflow-hidden">
-        <MessageList messages={messages} />
+        <MessageList messages={messages} isLoading={isLoading} />
       </div>
       <div className="shrink-0">
         <MessageInput onSend={onSend} isLoading={isLoading} />

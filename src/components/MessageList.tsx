@@ -6,13 +6,15 @@
 
 import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
+import { LoadingDots } from './LoadingDots';
 import type { Message } from '../types/index';
 
 interface MessageListProps {
   messages: Message[];
+  isLoading?: boolean;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, isLoading }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -38,6 +40,13 @@ export function MessageList({ messages }: MessageListProps) {
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
+      {isLoading && (
+        <div className="flex justify-start mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="px-3 py-2.5 transition-all border rounded-xl bg-white/3 text-white/90 border-white/10">
+            <LoadingDots />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

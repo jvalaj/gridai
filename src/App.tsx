@@ -29,7 +29,7 @@ function App() {
       <header className="flex items-center justify-between px-8 py-4 bg-black/60 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center gap-3">
           <img src={logoUrl} alt="grid logo" className="h-6 w-6 rounded-full border border-white" />
-          <h1 className="text-lg font-semibold text-white tracking-tight">Grid</h1>
+          <h1 className="text-lg text-white tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 800 }}>Grid.</h1>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -66,6 +66,7 @@ function App() {
               onQuickPrompt={sendMessage}
               selectedMessageId={selectedMessageId}
               onSelectMessage={setSelectedMessageId}
+              isLoading={isLoading}
             />
           </ResizablePanel>
 
@@ -77,6 +78,7 @@ function App() {
               isMainCanvas
               selectedMessageId={selectedMessageId}
               onSelectMessage={setSelectedMessageId}
+              isLoading={isLoading}
             />
           </div>
         </ResizablePanel>

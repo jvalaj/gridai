@@ -1,4 +1,4 @@
-# Grid
+# Grid.
 
 chatgpt but it replies in diagrams instead of walls of text
 

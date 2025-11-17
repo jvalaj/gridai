@@ -16,7 +16,7 @@
   
   body {
     @apply bg-black text-gray-100 antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Smooch Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: 0.3px;
     /* Subtle geometric grid + large soft radial circles */
     background-image:
