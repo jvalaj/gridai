@@ -6,29 +6,65 @@
 
 import { createShapeId, Editor } from '@tldraw/tldraw';
 import type { DiagramSpec, DiagramNode, DiagramEdge } from '../types/index';
+import { computeElkLayout, LayoutConstants } from './elkLayout';
 
 interface LayoutPosition {
   x: number;
   y: number;
 }
 
+function anchorOnRect(a: LayoutPosition, b: LayoutPosition, w: number, h: number) {
+  const ax = a.x + w / 2;
+  const ay = a.y + h / 2;
+  const bx = b.x + w / 2;
+  const by = b.y + h / 2;
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (dx === 0 && dy === 0) return { x: ax, y: ay };
+  const rx = w / 2;
+  const ry = h / 2;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  if (absDx * ry > absDy * rx) {
+    const sign = Math.sign(dx) || 1;
+    const x = ax + sign * rx;
+    const y = ay + dy * (rx / (absDx || 1));
+    return { x, y };
+  } else {
+    const sign = Math.sign(dy) || 1;
+    const y = ay + sign * ry;
+    const x = ax + dx * (ry / (absDy || 1));
+    return { x, y };
+  }
+}
+
+
 /**
  * Applies a DiagramSpec to a tldraw editor instance
  */
-export function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
+export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
   console.log('Applying diagram to editor:', spec);
   
   // Clear existing shapes
   editor.selectAll();
   editor.deleteShapes(editor.getSelectedShapeIds());
 
-  const nodePositions = calculateLayout(spec);
+  // Try ELK layered layout first; fallback to internal layout
+  let nodePositions: Map<string, LayoutPosition>;
+  try {
+    const res = await computeElkLayout(spec);
+    nodePositions = res.nodePositions as Map<string, LayoutPosition>;
+  } catch (e) {
+    console.warn('ELK layout failed, using fallback layout', e);
+    nodePositions = calculateLayout(spec);
+  }
   const shapeIds = new Map<string, string>();
 
-  // Create node shapes with visual variety based on type
-  spec.nodes.forEach((node: DiagramNode) => {
+  // Create node shapes with staggered animation
+  for (let i = 0; i < spec.nodes.length; i++) {
+    const node = spec.nodes[i];
     const pos = nodePositions.get(node.id);
-    if (!pos) return;
+    if (!pos) continue;
 
     const color = getColorForKind(node.kind);
     const geoShape = getShapeForKind(node.kind);
@@ -38,28 +74,26 @@ export function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
     const icon = getIconForKind(node.kind);
     const labelText = `${icon} ${node.label}`;
     
-    // Add natural variations
-    const sizeVariation = getRandomVariation();
-    const fillStyle = getRandomFill();
-    const dashStyle = getRandomDash();
-    const rotation = getRandomRotation();
-    
     console.log('Creating shape:', { id: node.id, label: labelText, geo: geoShape, pos });
 
-    // Create visually distinct geo shapes with integrated label
+    // Stagger node creation for drawing animation
+    await new Promise(resolve => setTimeout(resolve, i * 80));
+
+    // Create consistent geo shapes with centered label
     editor.createShape({
       type: 'geo',
       id: shapeId,
       x: pos.x,
       y: pos.y,
-      rotation: rotation,
+      rotation: 0,
+      opacity: 0,
       props: {
-        w: Math.max(200, 200 + sizeVariation * 0.5),
-        h: Math.max(120, 120 + sizeVariation * 0.3),
+        w: LayoutConstants.NODE_W,
+        h: LayoutConstants.NODE_H,
         geo: geoShape,
         color: color,
-        fill: fillStyle,
-        dash: dashStyle,
+        fill: 'semi',
+        dash: 'solid',
         size: 'm',
         richText: {
           type: 'doc',
@@ -81,46 +115,43 @@ export function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
         font: 'sans',
       },
     });
-  });
 
-  // Create edge shapes (arrows) with visual variety
-  spec.edges.forEach((edge: DiagramEdge) => {
+    // Fade in shape with proper animation
+    setTimeout(() => {
+      editor.updateShape({ id: shapeId, type: 'geo', opacity: 1 });
+    }, 50);
+  }
+
+  // Create edge shapes (arrows) with staggered animation
+  for (let i = 0; i < spec.edges.length; i++) {
+    const edge = spec.edges[i];
     const fromShapeId = shapeIds.get(edge.from);
     const toShapeId = shapeIds.get(edge.to);
     const fromPos = nodePositions.get(edge.from);
     const toPos = nodePositions.get(edge.to);
     
-    if (!fromShapeId || !toShapeId || !fromPos || !toPos) return;
+    if (!fromShapeId || !toShapeId || !fromPos || !toPos) continue;
 
-    // Calculate center points of shapes for arrow placement
-    const startX = fromPos.x + 100; // Center of shape (w=200, so w/2=100)
-    const startY = fromPos.y + 60;  // Center of shape (h=120, so h/2=60)
-    const endX = toPos.x + 100;
-    const endY = toPos.y + 60;
+    const start = anchorOnRect(fromPos, toPos, LayoutConstants.NODE_W, LayoutConstants.NODE_H);
+    const end = anchorOnRect(toPos, fromPos, LayoutConstants.NODE_W, LayoutConstants.NODE_H);
 
-    // Create styled arrows between shapes with integrated label
+    // Stagger arrow creation
+    await new Promise(resolve => setTimeout(resolve, i * 60));
+
     const arrowId = createShapeId();
-    const arrowDash = getRandomArrowDash();
-    const arrowColor = getRandomArrowColor();
-    const arrowSize = getRandomArrowSize();
-    
+
     editor.createShape({
       type: 'arrow',
       id: arrowId,
-      x: startX,
-      y: startY,
+      x: start.x,
+      y: start.y,
+      opacity: 0,
       props: {
-        start: {
-          x: 0,
-          y: 0,
-        },
-        end: {
-          x: endX - startX,
-          y: endY - startY,
-        },
-        color: arrowColor,
-        size: arrowSize,
-        dash: arrowDash,
+        start: { x: 0, y: 0 },
+        end: { x: end.x - start.x, y: end.y - start.y },
+        color: 'black',
+        size: 'm',
+        dash: 'solid',
         arrowheadStart: 'none',
         arrowheadEnd: 'arrow',
         richText: edge.label ? {
@@ -140,7 +171,12 @@ export function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
         font: 'sans',
       },
     });
-  });
+
+    // Fade in arrow with proper animation
+    setTimeout(() => {
+      editor.updateShape({ id: arrowId, type: 'arrow', opacity: 1 });
+    }, 50);
+  }
 
   // Zoom to fit all shapes
   editor.zoomToFit({ animation: { duration: 300 } });
@@ -478,46 +514,3 @@ function getColorForKind(kind: string): string {
   }
 }
 
-/**
- * Helper functions for adding natural variation to diagrams
- */
-
-// Random size variation (-10 to +20 pixels)
-function getRandomVariation(): number {
-  return Math.floor(Math.random() * 30) - 10;
-}
-
-// Random fill styles for variety
-function getRandomFill(): 'none' | 'semi' | 'solid' | 'pattern' {
-  const fills: Array<'none' | 'semi' | 'solid' | 'pattern'> = ['none', 'semi', 'solid', 'pattern'];
-  return fills[Math.floor(Math.random() * fills.length)];
-}
-
-// Random dash styles for hand-drawn feel
-function getRandomDash(): 'draw' | 'dashed' | 'dotted' | 'solid' {
-  const dashes: Array<'draw' | 'dashed' | 'dotted' | 'solid'> = ['draw', 'draw', 'draw', 'dashed', 'dotted', 'solid'];
-  return dashes[Math.floor(Math.random() * dashes.length)];
-}
-
-// Slight random rotation for organic feel (-5 to +5 degrees)
-function getRandomRotation(): number {
-  return (Math.random() - 0.5) * 0.17; // ~5 degrees in radians
-}
-
-// Random arrow dash styles
-function getRandomArrowDash(): 'draw' | 'dashed' | 'dotted' | 'solid' {
-  const dashes: Array<'draw' | 'dashed' | 'dotted' | 'solid'> = ['draw', 'draw', 'solid', 'dashed', 'dotted'];
-  return dashes[Math.floor(Math.random() * dashes.length)];
-}
-
-// Random arrow colors for variety
-function getRandomArrowColor(): string {
-  const colors = ['black', 'grey', 'light-violet', 'light-blue'];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// Random arrow sizes
-function getRandomArrowSize(): 's' | 'm' | 'l' {
-  const sizes: Array<'s' | 'm' | 'l'> = ['s', 'm', 'm', 'l'];
-  return sizes[Math.floor(Math.random() * sizes.length)];
-}

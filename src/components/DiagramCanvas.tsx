@@ -19,14 +19,14 @@ export function DiagramCanvas({ spec }: DiagramCanvasProps) {
 
   useEffect(() => {
     if (editorRef.current && spec) {
-      applyDiagramToEditor(editorRef.current, spec);
+      applyDiagramToEditor(editorRef.current, spec).catch(console.error);
     }
   }, [spec]);
 
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
     if (spec) {
-      applyDiagramToEditor(editor, spec);
+      applyDiagramToEditor(editor, spec).catch(console.error);
     }
   };
 

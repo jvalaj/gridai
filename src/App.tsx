@@ -12,13 +12,16 @@
  * - Apple-like design with system fonts and minimal styling
  */
 
+import React from 'react';
 import { useChat } from './hooks/useChat';
 import { ChatPanel } from './components/ChatPanel';
 import { DiagramPanel } from './components/DiagramPanel';
+import { ResizablePanel } from './components/ResizablePanel';
 import logoUrl from './gridailogo.png';
 
 function App() {
   const { messages, isLoading, error, sendMessage, clearMessages } = useChat();
+  const [selectedMessageId, setSelectedMessageId] = React.useState<string | null>(null);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-black overflow-hidden">
@@ -48,19 +51,35 @@ function App() {
 
       {/* Main content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Chat panel */}
-        <div className="w-full md:w-[420px] shrink-0">
-          <ChatPanel
-            messages={messages}
-            onSend={sendMessage}
-            isLoading={isLoading}
-          />
-        </div>
+        <ResizablePanel direction="horizontal" initialSize={420} minSize={320} maxSize={600}>
+          {/* Left panel: Chat + Diagram History */}
+          <ResizablePanel direction="vertical" initialSize={400} minSize={200}>
+            {/* Chat section - top half */}
+            <ChatPanel
+              messages={messages}
+              onSend={sendMessage}
+              isLoading={isLoading}
+            />
+            {/* Diagram history - bottom half */}
+            <DiagramPanel 
+              messages={messages} 
+              onQuickPrompt={sendMessage}
+              selectedMessageId={selectedMessageId}
+              onSelectMessage={setSelectedMessageId}
+            />
+          </ResizablePanel>
 
-        {/* Diagram panel */}
-        <div className="flex-1 hidden md:block">
-          <DiagramPanel messages={messages} onQuickPrompt={sendMessage} />
-        </div>
+          {/* Right panel: Main diagram canvas */}
+          <div className="hidden md:block h-full">
+            <DiagramPanel 
+              messages={messages} 
+              onQuickPrompt={sendMessage} 
+              isMainCanvas
+              selectedMessageId={selectedMessageId}
+              onSelectMessage={setSelectedMessageId}
+            />
+          </div>
+        </ResizablePanel>
       </main>
     </div>
   );
