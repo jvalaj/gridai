@@ -58,7 +58,7 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
     console.warn('ELK layout failed, using fallback layout', e);
     nodePositions = calculateLayout(spec);
   }
-  const shapeIds = new Map<string, string>();
+  const shapeIds = new Map<string, any>();
 
   // Create node shapes with staggered animation
   for (let i = 0; i < spec.nodes.length; i++) {
@@ -74,109 +74,157 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
     const icon = getIconForKind(node.kind);
     const labelText = `${icon} ${node.label}`;
     
+    // Calculate dynamic node size based on content
+    const textWidth = labelText.length * 8;
+    const iconWidth = 20;
+    const nodeWidth = Math.max(LayoutConstants.NODE_W, Math.min(300, textWidth + iconWidth + 40));
+    const nodeHeight = LayoutConstants.NODE_H;
+    
     console.log('Creating shape:', { id: node.id, label: labelText, geo: geoShape, pos });
 
     // Stagger node creation for drawing animation
     await new Promise(resolve => setTimeout(resolve, i * 80));
 
-    // Create consistent geo shapes with centered label
-    editor.createShape({
-      type: 'geo',
-      id: shapeId,
-      x: pos.x,
-      y: pos.y,
-      rotation: 0,
-      opacity: 0,
-      props: {
-        w: LayoutConstants.NODE_W,
-        h: LayoutConstants.NODE_H,
-        geo: geoShape,
-        color: color,
-        fill: 'semi',
-        dash: 'solid',
-        size: 'm',
-        richText: {
-          type: 'doc',
-          content: [
-            {
-              type: 'paragraph',
-              content: [
-                {
-                  type: 'text',
-                  text: labelText
-                }
-              ]
-            }
-          ]
-        },
-        align: 'middle',
-        verticalAlign: 'middle',
-        labelColor: 'black',
-        font: 'sans',
-      },
-    });
-
-    // Fade in shape with proper animation
-    setTimeout(() => {
-      editor.updateShape({ id: shapeId, type: 'geo', opacity: 1 });
-    }, 50);
-  }
-
-  // Create edge shapes (arrows) with staggered animation
-  for (let i = 0; i < spec.edges.length; i++) {
-    const edge = spec.edges[i];
-    const fromShapeId = shapeIds.get(edge.from);
-    const toShapeId = shapeIds.get(edge.to);
-    const fromPos = nodePositions.get(edge.from);
-    const toPos = nodePositions.get(edge.to);
+    // Use note shape for annotations, otherwise use geo shapes
+    const isNote = node.kind === 'note' || node.kind === 'annotation';
     
-    if (!fromShapeId || !toShapeId || !fromPos || !toPos) continue;
-
-    const start = anchorOnRect(fromPos, toPos, LayoutConstants.NODE_W, LayoutConstants.NODE_H);
-    const end = anchorOnRect(toPos, fromPos, LayoutConstants.NODE_W, LayoutConstants.NODE_H);
-
-    // Stagger arrow creation
-    await new Promise(resolve => setTimeout(resolve, i * 60));
-
-    const arrowId = createShapeId();
-
-    editor.createShape({
-      type: 'arrow',
-      id: arrowId,
-      x: start.x,
-      y: start.y,
-      opacity: 0,
-      props: {
-        start: { x: 0, y: 0 },
-        end: { x: end.x - start.x, y: end.y - start.y },
-        color: 'black',
-        size: 'm',
-        dash: 'solid',
-        arrowheadStart: 'none',
-        arrowheadEnd: 'arrow',
-        richText: edge.label ? {
-          type: 'doc',
-          content: [
-            {
-              type: 'paragraph',
-              content: [
-                {
-                  type: 'text',
-                  text: edge.label
-                }
-              ]
-            }
-          ]
-        } : undefined,
-        font: 'sans',
-      },
-    });
-
-    // Fade in arrow with proper animation
-    setTimeout(() => {
-      editor.updateShape({ id: arrowId, type: 'arrow', opacity: 1 });
-    }, 50);
+    if (isNote) {
+      // Create sticky note shape
+      editor.createShape({
+        type: 'note',
+        id: shapeId,
+        x: pos.x,
+        y: pos.y,
+        rotation: 0,
+        opacity: 1,
+        props: {
+          w: nodeWidth,
+          h: nodeHeight,
+          color: color,
+          text: labelText,
+          align: 'middle',
+          verticalAlign: 'middle',
+          font: 'sans',
+          size: 'm',
+        },
+      });
+    } else {
+      // Create geo shapes with centered label
+      editor.createShape({
+        type: 'geo',
+        id: shapeId,
+        x: pos.x,
+        y: pos.y,
+        rotation: 0,
+        opacity: 1,
+        props: {
+          w: nodeWidth,
+          h: nodeHeight,
+          geo: geoShape,
+          color: color,
+          fill: 'semi',
+          dash: 'solid',
+          size: 'm',
+          text: labelText,
+          align: 'middle',
+          verticalAlign: 'middle',
+          font: 'sans',
+        },
+      });
+    }
   }
+
+  // Enhanced wave-based animation for nodes
+  const animationWaves = Math.ceil(spec.nodes.length / 3);
+  for (let wave = 0; wave < animationWaves; wave++) {
+    setTimeout(() => {
+      const startIdx = wave * 3;
+      const endIdx = Math.min(startIdx + 3, spec.nodes.length);
+      for (let i = startIdx; i < endIdx; i++) {
+        const shapeId = shapeIds.get(spec.nodes[i].id);
+        if (shapeId) {
+          editor.updateShape({ 
+            id: shapeId, 
+            type: 'geo', 
+            opacity: 1
+            // Add scale animation
+            // scale: 0.8
+          });
+          setTimeout(() => {
+            editor.updateShape({ id: shapeId, type: 'geo'
+              // scale: 1
+            });
+          }, 200);
+        }
+      }
+    }, wave * 300);
+  }
+
+  // Wait for node animations to complete before starting edges
+  setTimeout(() => {
+    // Create edge shapes (arrows) with staggered animation
+    for (let i = 0; i < spec.edges.length; i++) {
+      const edge = spec.edges[i];
+      const fromShapeId = shapeIds.get(edge.from);
+      const toShapeId = shapeIds.get(edge.to);
+      const fromPos = nodePositions.get(edge.from);
+      const toPos = nodePositions.get(edge.to);
+      
+      if (!fromShapeId || !toShapeId || !fromPos || !toPos) continue;
+
+      // Get node sizes for anchor calculation
+      const fromNode = spec.nodes.find(n => n.id === edge.from);
+      const toNode = spec.nodes.find(n => n.id === edge.to);
+      const fromTextWidth = fromNode ? (fromNode.label.length * 8 + 40) : LayoutConstants.NODE_W;
+      const toTextWidth = toNode ? (toNode.label.length * 8 + 40) : LayoutConstants.NODE_W;
+      const fromWidth = Math.max(LayoutConstants.NODE_W, Math.min(300, fromTextWidth));
+      const toWidth = Math.max(LayoutConstants.NODE_W, Math.min(300, toTextWidth));
+
+      const start = anchorOnRect(fromPos, toPos, fromWidth, LayoutConstants.NODE_H);
+      const end = anchorOnRect(toPos, fromPos, toWidth, LayoutConstants.NODE_H);
+
+      const arrowId = createShapeId();
+
+      editor.createShape({
+        type: 'arrow',
+        id: arrowId,
+        x: start.x,
+        y: start.y,
+        opacity: 0,
+        props: {
+          start: { x: 0, y: 0 },
+          end: { x: end.x - start.x, y: end.y - start.y },
+          color: 'black',
+          size: 'l', // Larger arrows
+          dash: spec.type === 'flowchart' ? 'dashed' : 'solid', // Different styles for flowcharts
+          arrowheadStart: 'none',
+          arrowheadEnd: 'arrow',
+          // Add curved edges for certain diagram types
+          bend: spec.type === 'directed-graph' ? 0.3 : 0,
+          richText: edge.label ? {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: edge.label
+                  }
+                ]
+              }
+            ]
+          } : undefined,
+          font: 'sans',
+        },
+      });
+
+      // Fade in arrow with proper animation
+      setTimeout(() => {
+        editor.updateShape({ id: arrowId, type: 'arrow', opacity: 1 });
+      }, 50);
+    }
+  }, animationWaves * 300 + 200);
 
   // Zoom to fit all shapes
   editor.zoomToFit({ animation: { duration: 300 } });
@@ -458,13 +506,33 @@ function getShapeForKind(kind: string): string {
     case 'service':
       return 'rectangle'; // Standard box for services
     case 'db':
-      return 'cloud'; // Cloud shape for databases
+      return 'cylinder'; // Cylinder for databases (classic DB shape)
     case 'queue':
       return 'hexagon'; // Hexagon for queues
     case 'component':
-      return 'rectangle'; // Box for components
+      return 'rectangle'; // Clean rectangles for components
     case 'process':
-      return 'diamond'; // Diamond for processes/decisions
+      return 'trapezoid'; // Trapezoid for processes
+    case 'cache':
+      return 'rhombus'; // Diamond for cache
+    case 'storage':
+      return 'cylinder'; // Cylinder for storage
+    case 'external':
+      return 'cloud'; // Cloud for external services
+    case 'ui':
+      return 'rectangle'; // Rectangle for UI elements
+    case 'api':
+      return 'hexagon'; // Hexagon for APIs
+    case 'gateway':
+      return 'pentagon'; // Pentagon for gateways
+    case 'lb':
+    case 'loadbalancer':
+      return 'triangle'; // Triangle for load balancers
+    case 'worker':
+      return 'oval'; // Oval for workers
+    case 'note':
+    case 'annotation':
+      return 'rectangle'; // Will use note type for these
     default:
       return 'rectangle';
   }
@@ -478,15 +546,35 @@ function getIconForKind(kind: string): string {
     case 'actor':
       return '👤'; // Person icon
     case 'service':
-      return '⚙️'; // Gear for service
+      return '🔧'; // Gear for service
     case 'db':
-      return '💾'; // Database disk
+      return '🗄️'; // Database icon
     case 'queue':
-      return '📬'; // Mailbox for queue
+      return '📋'; // Queue/list icon
     case 'component':
       return '📦'; // Package for component
     case 'process':
-      return '⚡'; // Lightning for process
+      return '⚙️'; // Process wheel
+    case 'cache':
+      return '⚡'; // Lightning for cache
+    case 'storage':
+      return '💾'; // Disk for storage
+    case 'external':
+      return '☁️'; // Cloud for external
+    case 'ui':
+      return '🖥️'; // Screen for UI
+    case 'api':
+      return '🔌'; // Plug for API
+    case 'gateway':
+      return '🚪'; // Door for gateway
+    case 'lb':
+    case 'loadbalancer':
+      return '⚖️'; // Scale for load balancer
+    case 'worker':
+      return '👷'; // Worker
+    case 'note':
+    case 'annotation':
+      return '📝'; // Note
     default:
       return '●';
   }
@@ -508,6 +596,26 @@ function getColorForKind(kind: string): string {
     case 'component':
       return 'light-blue';
     case 'process':
+      return 'red';
+    case 'cache':
+      return 'yellow';
+    case 'storage':
+      return 'orange';
+    case 'external':
+      return 'grey';
+    case 'ui':
+      return 'blue';
+    case 'api':
+      return 'green';
+    case 'gateway':
+      return 'light-green';
+    case 'lb':
+    case 'loadbalancer':
+      return 'light-violet';
+    case 'worker':
+      return 'light-red';
+    case 'note':
+    case 'annotation':
       return 'yellow';
     default:
       return 'grey';

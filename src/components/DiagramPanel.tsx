@@ -31,11 +31,15 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
   const selectedSpec = selectedMessage?.metadata?.diagramSpec || null;
 
   const starterPrompts: { title: string; prompt: string }[] = [
-    { title: 'Microservices Architecture', prompt: 'Show a microservices architecture' },
-    { title: 'OAuth 2.0 Flow', prompt: 'Explain the OAuth 2.0 authorization code flow' },
-    { title: 'CI/CD Pipeline', prompt: 'Sketch a CI/CD pipeline' },
-    { title: 'HTTP Request Lifecycle', prompt: 'Explain the HTTP request lifecycle' },
-    { title: 'User Authentication', prompt: 'Show a user login/authentication flow' },
+    { title: 'Microservices Architecture', prompt: 'Show a microservices architecture with API gateway, services, and databases' },
+    { title: 'OAuth 2.0 Flow', prompt: 'Explain the OAuth 2.0 authorization code flow with all participants' },
+    { title: 'CI/CD Pipeline', prompt: 'Sketch a complete CI/CD pipeline from code to production' },
+    { title: 'HTTP Request Lifecycle', prompt: 'Explain the complete HTTP request lifecycle from browser to server' },
+    { title: 'User Authentication', prompt: 'Show a comprehensive user login/authentication flow with security' },
+    { title: 'Database Design', prompt: 'Design a database schema for an e-commerce platform' },
+    { title: 'API Architecture', prompt: 'Show a REST API architecture with authentication and rate limiting' },
+    { title: 'Event-Driven System', prompt: 'Design an event-driven microservices architecture' },
+    { title: 'Container Orchestration', prompt: 'Show Kubernetes pod deployment and service communication' },
   ];
 
   const hasDiagram = !!selectedSpec;
@@ -145,7 +149,7 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
         </div>
       )}
 
-      {hasDiagram && <DiagramCanvas spec={selectedSpec} />}
+      {hasDiagram && <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} />}
     </div>
   );
 }

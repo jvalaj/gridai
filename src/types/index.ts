@@ -1,7 +1,7 @@
 export interface DiagramNode {
   id: string;
   label: string;
-  kind: 'actor' | 'service' | 'db' | 'queue' | 'component' | 'process' | 'other';
+  kind: 'actor' | 'service' | 'db' | 'queue' | 'component' | 'process' | 'cache' | 'storage' | 'external' | 'ui' | 'api' | 'gateway' | 'lb' | 'loadbalancer' | 'worker' | 'note' | 'annotation' | 'other';
 }
 
 export interface DiagramEdge {

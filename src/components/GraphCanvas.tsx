@@ -199,7 +199,6 @@ export function GraphCanvas({
         // Calculate connection points at card borders
         const cardWidth = 300;
         const cardHeaderHeight = 50;
-        const cardBorderRadius = 8; // Match the rounded corners
         
         // Get actual card height from message content
         const sourceMessage = getMessage(source.id);
@@ -239,8 +238,6 @@ export function GraphCanvas({
           dirY: number
         ): [number, number] => {
           // Calculate which edge the line intersects
-          const halfWidth = rectWidth / 2;
-          const halfHeight = rectHeight / 2;
           
           // Check intersection with each edge
           let intersectX = centerX;
@@ -319,7 +316,6 @@ export function GraphCanvas({
             const perpY = dx / length;
             
             // Two control points for cubic bezier (creates smoother, more visible S-curve)
-            const controlDist = length * 0.4; // Control points at 40% of distance
             
             const control1X = sourceX + dx * 0.25 + perpX * curveOffset;
             const control1Y = sourceY + dy * 0.25 + perpY * curveOffset;

@@ -29,7 +29,7 @@ When a user asks a technical question, respond with ONLY valid JSON (no prose) u
     "type": "directed-graph" | "sequence" | "tree" | "flowchart",
     "title": "Brief diagram title",
     "nodes": [
-      { "id": "unique-id", "label": "Short label", "kind": "actor|service|db|queue|component|process|other" }
+      { "id": "unique-id", "label": "Short label", "kind": "actor|service|db|queue|component|process|cache|storage|external|ui|api|gateway|lb|loadbalancer|worker|note|annotation|other" }
     ],
     "edges": [
       { "from": "node-id", "to": "node-id", "label": "optional edge label" }
@@ -51,8 +51,27 @@ When a user asks a technical question, respond with ONLY valid JSON (no prose) u
   ]
 }
 
+Node kind guide:
+- actor: people/users (ellipse shape)
+- service: backend services (rectangle)
+- db: databases (cylinder)
+- cache: cache layers like Redis (diamond)
+- storage: file/blob storage (cylinder)
+- queue: message queues (hexagon)
+- component: application components (rectangle)
+- process: background processes (trapezoid)
+- external: external APIs/services (cloud)
+- ui: user interfaces (rectangle)
+- api: API endpoints (hexagon)
+- gateway: API gateways (pentagon)
+- lb/loadbalancer: load balancers (triangle)
+- worker: worker processes (oval)
+- note/annotation: explanatory notes (sticky note)
+- other: generic nodes (rectangle)
+
 Guidelines:
 - Choose the most readable diagram type and explain it in plan.type_choice
+- Use diverse node kinds to make diagrams visually interesting and semantically clear
 - Labels should be concise (2-4 words); add edge labels when clarifying flow
 - Prefer 6–14 nodes unless complexity requires more
 - If uncertain, propose 1-2 variants with different type/orientation
