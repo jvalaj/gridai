@@ -17,10 +17,12 @@ interface ChatPanelProps {
 export function ChatPanel({ messages, onSend, isLoading }: ChatPanelProps) {
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-100">
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <MessageList messages={messages} />
       </div>
-      <MessageInput onSend={onSend} isLoading={isLoading} />
+      <div className="flex-shrink-0">
+        <MessageInput onSend={onSend} isLoading={isLoading} />
+      </div>
     </div>
   );
 }

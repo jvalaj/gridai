@@ -33,7 +33,7 @@ export function MessageList({ messages }: MessageListProps) {
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-6 py-4 space-y-1 scroll-smooth"
+      className="h-full overflow-y-auto px-6 py-4 space-y-1 scroll-smooth"
     >
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />

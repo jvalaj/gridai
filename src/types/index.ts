@@ -1,3 +1,22 @@
+export interface DiagramNode {
+  id: string;
+  label: string;
+  kind: 'actor' | 'service' | 'db' | 'queue' | 'component' | 'process' | 'other';
+}
+
+export interface DiagramEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface DiagramSpec {
+  type: 'directed-graph' | 'sequence' | 'tree' | 'flowchart';
+  title: string;
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -9,6 +28,7 @@ export interface Message {
     topics?: string[];   // Detected topics
     sentiment?: 'positive' | 'neutral' | 'negative';
     embedding?: number[]; // Vector embedding for semantic similarity
+    diagramSpec?: DiagramSpec; // Diagram specification from AI
   };
 }
 
@@ -46,3 +66,5 @@ export interface SemanticNode {
   text: string;
   timestamp: number;
 }
+
+export type Role = 'user' | 'assistant' | 'system';
