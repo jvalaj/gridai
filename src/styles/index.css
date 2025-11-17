@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+/* Apple-like system font stack */
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  
+  body {
+    @apply bg-[#f5f5f7] text-gray-900 antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+/* Smooth animations */
+@layer utilities {
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+  }
+  
+  .fade-in {
+    animation-name: fadeIn;
+  }
+  
+  .slide-in-from-bottom-2 {
+    animation-name: slideInFromBottom;
+  }
+  
+  .slide-in-from-right-2 {
+    animation-name: slideInFromRight;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Card-based graph styling (matching original design) */
+.card {
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.card.dragging {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  cursor: grabbing;
+  z-index: 1000;
+}
+
+.card-header {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e5e5;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.card-header:active {
+  cursor: grabbing;
+}
+
+.card-type {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.card-type.user {
+  color: #000000;
+}
+
+.card-type.ai {
+  color: #333333;
+}
+
+.card-body {
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333333;
+  cursor: pointer;
+}
+
+.card-body p {
+  margin: 0;
+}
+
+.panning {
+  cursor: grabbing !important;
+}
+
+.connector-line {
+  stroke: #000000;
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.15;
+}
+

@@ -1,31 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Draggable Chat Board</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="top-bar">
-    <input 
-      type="text" 
-      id="global-input" 
-      placeholder="Ask something…" 
-      aria-label="Ask a question"
-    >
-    <button id="send-btn" aria-label="Send message">Send</button>
-    <button id="zoom-out-btn" aria-label="Zoom out">−</button>
-    <span id="zoom-level" class="zoom-level">100%</span>
-    <button id="zoom-in-btn" aria-label="Zoom in">+</button>
-    <button id="reset-btn" aria-label="Reset board">Reset</button>
-  </div>
-  
-  <div id="board" class="board">
-    <svg id="connectors" class="connectors"></svg>
-    <div id="cards-container" class="cards-container"></div>
-  </div>
-  
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GraphChat</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
