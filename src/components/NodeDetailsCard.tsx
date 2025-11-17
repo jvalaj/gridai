@@ -37,7 +37,7 @@ export function NodeDetailsCard({ message, onClose }: NodeDetailsCardProps) {
           <X size={16} />
         </button>
       </div>
-      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap wrap-break-word">
+      <p className="text-base text-gray-200 leading-relaxed whitespace-pre-wrap wrap-break-word">
         {message.content}
       </p>
       <span className="text-xs text-gray-500 mt-2 block">

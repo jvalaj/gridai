@@ -17,6 +17,32 @@ export interface DiagramSpec {
   edges: DiagramEdge[];
 }
 
+export interface LayoutOptions {
+  orientation?: 'LR' | 'TB';
+  edgeStyle?: 'orthogonal' | 'curved' | 'straight';
+  spacing?: 'compact' | 'cozy' | 'spacious';
+}
+
+export interface VisualizationPlan {
+  intent?: string;
+  type_choice?: string;
+  steps?: string[];
+  alternatives?: Array<{ title?: string; when?: string }>;
+}
+
+export interface AssistantVariant {
+  title?: string;
+  diagram: DiagramSpec;
+}
+
+export interface AssistantEnvelope {
+  message?: string; // short assistant reply to display in chat
+  diagram: DiagramSpec; // primary diagram to render
+  plan?: VisualizationPlan; // reasoning and steps
+  layoutOptions?: LayoutOptions; // rendering preferences
+  variants?: AssistantVariant[]; // optional alternative diagrams
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -29,6 +55,9 @@ export interface Message {
     sentiment?: 'positive' | 'neutral' | 'negative';
     embedding?: number[]; // Vector embedding for semantic similarity
     diagramSpec?: DiagramSpec; // Diagram specification from AI
+    plan?: VisualizationPlan;
+    layoutOptions?: LayoutOptions;
+    variants?: AssistantVariant[];
   };
 }
 

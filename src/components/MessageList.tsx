@@ -27,7 +27,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
-        <p className="text-sm font-medium">Start a conversation...</p>
+        <p className="text-base font-medium">Start a conversation...</p>
       </div>
     );
   }

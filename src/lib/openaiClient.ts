@@ -12,7 +12,7 @@
  * If no API key is provided, the client will use stub mode with fake responses.
  */
 
-import type { Role } from '../types';
+import type { Role } from '../types/index';
 
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 // Force stub mode via env flag (never call API when true)
@@ -20,31 +20,43 @@ const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const STUB_MODE = String(import.meta.env.VITE_STUB_MODE || '').toLowerCase() === 'true';
 const MODEL = 'gpt-4o-mini'; // Lightweight model for MVP
 
-const DIAGRAM_SYSTEM_PROMPT = `You are a diagram generator for developers.
-When a user asks a technical question, respond with ONLY valid JSON describing a diagram.
+const DIAGRAM_SYSTEM_PROMPT = `You are a senior systems visualization assistant.
+When a user asks a technical question, respond with ONLY valid JSON (no prose) using this envelope:
 
-Use this exact schema:
 {
-  "type": "directed-graph" | "sequence" | "tree" | "flowchart",
-  "title": "Brief description of the diagram",
-  "nodes": [
-    { "id": "unique-id", "label": "Node label", "kind": "actor|service|db|queue|component|process|other" }
-  ],
-  "edges": [
-    { "from": "node-id", "to": "node-id", "label": "optional edge label" }
+  "message": "1-2 sentence helpful summary to display in chat",
+  "diagram": {
+    "type": "directed-graph" | "sequence" | "tree" | "flowchart",
+    "title": "Brief diagram title",
+    "nodes": [
+      { "id": "unique-id", "label": "Short label", "kind": "actor|service|db|queue|component|process|other" }
+    ],
+    "edges": [
+      { "from": "node-id", "to": "node-id", "label": "optional edge label" }
+    ]
+  },
+  "plan": {
+    "intent": "What the user wants",
+    "type_choice": "Why this diagram type fits",
+    "steps": ["Step 1…", "Step 2…"],
+    "alternatives": [{ "title": "Alternative framing", "when": "When to use" }]
+  },
+  "layoutOptions": {
+    "orientation": "LR" | "TB",
+    "edgeStyle": "orthogonal" | "curved" | "straight",
+    "spacing": "compact" | "cozy" | "spacious"
+  },
+  "variants": [
+    { "title": "Optional variant", "diagram": { /* same schema as above */ } }
   ]
 }
 
 Guidelines:
-- Use "actor" for users, clients, or external entities
-- Use "service" for servers, APIs, microservices
-- Use "db" for databases
-- Use "queue" for message queues, event buses
-- Use "component" for system components, modules
-- Use "process" for business processes, workflows
-- Keep node labels short (2-4 words)
-- Add edge labels to describe relationships/actions
-- Respond ONLY with the JSON, no extra text`;
+- Choose the most readable diagram type and explain it in plan.type_choice
+- Labels should be concise (2-4 words); add edge labels when clarifying flow
+- Prefer 6–14 nodes unless complexity requires more
+- If uncertain, propose 1-2 variants with different type/orientation
+- Output ONLY JSON (no markdown fences, no extra commentary)`;
 
 /**
  * Sends a chat request to OpenAI and returns a diagram specification.
@@ -89,7 +101,8 @@ export async function sendChat(
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || '{"type":"directed-graph","title":"Error","nodes":[],"edges":[]}';
+    // Return the JSON envelope string
+    return data.choices[0]?.message?.content || '{"message":"Error","diagram":{"type":"directed-graph","title":"Error","nodes":[],"edges":[]}}';
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     // Fallback to stub on error
@@ -109,8 +122,9 @@ function generateStubDiagram(
     .find(m => m.role === 'user')?.content.toLowerCase() || '';
 
   // Detect what kind of diagram to generate based on keywords
+  let base: any | null = null;
   if (lastUserMessage.includes('login') || lastUserMessage.includes('auth')) {
-    return JSON.stringify({
+    base = {
       type: 'directed-graph',
       title: 'User Authentication Flow',
       nodes: [
@@ -132,11 +146,11 @@ function generateStubDiagram(
         { from: 'sessionstore', to: 'authservice', label: 'return token' },
         { from: 'authservice', to: 'frontend', label: 'JWT token' },
       ],
-    });
+    };
   }
 
   if (lastUserMessage.includes('oauth') || lastUserMessage.includes('oauth2')) {
-    return JSON.stringify({
+    base = {
       type: 'sequence',
       title: 'OAuth 2.0 Authorization Code Flow',
       nodes: [
@@ -156,11 +170,11 @@ function generateStubDiagram(
         { from: 'client', to: 'resourceserver', label: '8. API call with token' },
         { from: 'resourceserver', to: 'client', label: '9. Protected data' },
       ],
-    });
+    };
   }
 
   if (lastUserMessage.includes('microservice') || lastUserMessage.includes('micro service')) {
-    return JSON.stringify({
+    base = {
       type: 'directed-graph',
       title: 'Microservices Architecture',
       nodes: [
@@ -187,11 +201,11 @@ function generateStubDiagram(
         { from: 'paymentservice', to: 'messagequeue', label: 'publish event' },
         { from: 'messagequeue', to: 'notificationservice', label: 'consume' },
       ],
-    });
+    };
   }
 
   if (lastUserMessage.includes('ci/cd') || lastUserMessage.includes('cicd') || lastUserMessage.includes('pipeline')) {
-    return JSON.stringify({
+    base = {
       type: 'flowchart',
       title: 'CI/CD Pipeline',
       nodes: [
@@ -213,11 +227,11 @@ function generateStubDiagram(
         { from: 'artifact', to: 'staging', label: 'deploy' },
         { from: 'staging', to: 'prod', label: 'manual approval' },
       ],
-    });
+    };
   }
 
   if (lastUserMessage.includes('http') || lastUserMessage.includes('request')) {
-    return JSON.stringify({
+    base = {
       type: 'sequence',
       title: 'HTTP Request Lifecycle',
       nodes: [
@@ -242,11 +256,11 @@ function generateStubDiagram(
         { from: 'database', to: 'appserver', label: 'return data' },
         { from: 'appserver', to: 'browser', label: 'JSON response' },
       ],
-    });
+    };
   }
 
   // Default fallback diagram
-  return JSON.stringify({
+  base = base || {
     type: 'directed-graph',
     title: 'Basic System Architecture',
     nodes: [
@@ -267,7 +281,27 @@ function generateStubDiagram(
       { from: 'queue', to: 'worker', label: 'process async' },
       { from: 'worker', to: 'database', label: 'update' },
     ],
-  });
+  };
+
+  const envelope = {
+    message: 'Here is a clear visualization with steps and options.',
+    diagram: base,
+    plan: {
+      intent: 'Answer the user query with a readable system diagram',
+      type_choice: base.type,
+      steps: [
+        'Identify main actors/components',
+        'Connect them in logical flow',
+        'Label edges to clarify actions',
+      ],
+      alternatives: [
+        { title: 'Sequence view', when: 'When order of interactions matters' },
+      ],
+    },
+    layoutOptions: { orientation: 'LR', edgeStyle: 'orthogonal', spacing: 'cozy' },
+    variants: [],
+  };
+  return JSON.stringify(envelope);
 }
 
 

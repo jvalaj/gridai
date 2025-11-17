@@ -1,0 +1,13 @@
+/*
+  gridailogo-bg.css
+  Utility class for beige background on the starter screen
+*/
+.gridailogo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #fffff3;
+  opacity: 0.7;
+  color: black !important;
+}

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './gridailogo-bg.css';
 
 /* Minimal blueprint aesthetic */
 @layer base {
@@ -16,7 +17,8 @@
   
   body {
     @apply bg-black text-gray-100 antialiased;
-    font-family: 'Smooch Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px !important;
     letter-spacing: 0.3px;
     /* Subtle geometric grid + large soft radial circles */
     background-image:

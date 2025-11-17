@@ -45,7 +45,7 @@ function App() {
       {/* Error banner */}
       {error && (
         <div className="px-8 py-3 bg-white/5 backdrop-blur-sm border-b border-white/10">
-          <p className="text-sm text-white/80">{error}</p>
+          <p className="text-base text-white/80">{error}</p>
         </div>
       )}
 

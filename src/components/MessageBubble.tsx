@@ -48,12 +48,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             : 'bg-white/3 text-white/90 border-white/10'
         }`}
       >
-        <p className="text-[13px] leading-relaxed whitespace-pre-wrap wrap-break-word">
+        <p className="text-[15px] leading-relaxed whitespace-pre-wrap wrap-break-word">
           {displayedContent}
           {isTyping && <span className="inline-block w-1.5 h-4 ml-0.5 bg-white/60 animate-pulse" />}
         </p>
         <span
-          className={`text-[10px] mt-1 block font-medium ${
+          className={`text-[11px] mt-1 block font-medium ${
             isUser ? 'text-gray-600' : 'text-white/40'
           }`}
         >

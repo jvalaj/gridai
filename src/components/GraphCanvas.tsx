@@ -629,7 +629,7 @@ export function GraphCanvas({
   if (nodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400">
-        <p className="text-sm">Your conversation graph will appear here</p>
+        <p className="text-base">Your conversation graph will appear here</p>
       </div>
     );
   }
@@ -728,7 +728,7 @@ export function GraphCanvas({
 
               {/* Card Body */}
               <div className="card-body" onClick={() => onNodeClick(node.id)}>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+                <p className="text-base leading-relaxed whitespace-pre-wrap wrap-break-word">
                   {message.content}
                 </p>
               </div>

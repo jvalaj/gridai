@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sendChat } from '../lib/openaiClient';
-import type { Message } from '../types/index';
+import type { Message, Role } from '../types/index';
 
 // Local storage key for persisting messages
 const MESSAGES_KEY = 'diagramchat_messages';
@@ -56,31 +56,49 @@ export function useChat() {
 
     try {
       // Prepare messages for API - just send the user message
-      const apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-        { role: 'user' as const, content: content.trim() }
+      const apiMessages: Array<{ role: Role; content: string }> = [
+        { role: 'user', content: content.trim() }
       ];
 
-      // Call OpenAI - will return diagram JSON
-      const diagramJsonString = await sendChat(apiMessages);
+      // Call OpenAI - returns JSON envelope or raw diagram JSON
+      const payloadString = await sendChat(apiMessages);
 
-      // Parse the diagram JSON
-      let diagramSpec;
+      // Parse the response
+      let diagramSpec: any = null;
+      let assistantText = '';
+      let plan: any = undefined;
+      let layoutOptions: any = undefined;
+      let variants: any = undefined;
       try {
-        diagramSpec = JSON.parse(diagramJsonString);
+        const parsed = JSON.parse(payloadString);
+        if (parsed && parsed.diagram) {
+          diagramSpec = parsed.diagram;
+          assistantText = parsed.message || parsed.diagram?.title || 'Diagram';
+          plan = parsed.plan;
+          layoutOptions = parsed.layoutOptions;
+          variants = parsed.variants;
+        } else {
+          // Backward compatibility when model returns raw diagram spec
+          diagramSpec = parsed;
+          assistantText = parsed.title || 'Diagram';
+        }
       } catch (parseError) {
-        console.error('Failed to parse diagram JSON:', parseError);
-        throw new Error('Invalid diagram format received from AI');
+        console.error('Failed to parse AI JSON:', parseError);
+        throw new Error('Invalid JSON received from AI');
       }
 
-      // Create assistant message with the diagram spec
+      // Create assistant message with the diagram spec and optional plan
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: diagramSpec.title || 'Diagram',
+        content: assistantText,
         createdAt: new Date().toISOString(),
         metadata: {
           diagramSpec,
-          sentiment: 'neutral'
+          sentiment: 'neutral',
+          plan,
+          layoutOptions,
+          variants,
         }
       };
 

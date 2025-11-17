@@ -45,8 +45,8 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
     return (
       <div className="h-full flex flex-col bg-black/60 backdrop-blur-sm">
         <div className="px-4 py-3 border-b border-white/10">
-          <h3 className="text-xs font-semibold text-white/90">Diagram History</h3>
-          <p className="text-[10px] text-white/50 mt-0.5">
+          <h3 className="font-semibold text-white/90">Diagram History</h3>
+          <p className=" text-white/50 mt-0.5">
             {diagramMessages.length} diagram{diagramMessages.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -83,10 +83,10 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
                       {diagramMessages.length - idx}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-xs truncate mb-0.5">
+                      <div className="font-medium text-base truncate mb-0.5">
                         {msg.metadata?.diagramSpec?.title || 'Untitled Diagram'}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-white/50">
+                      <div className="flex items-center gap-1.5 text-xs text-white/50">
                         <span className="capitalize">
                           {msg.metadata?.diagramSpec?.type.replace('-', ' ')}
                         </span>
@@ -107,33 +107,37 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
   // Main canvas mode - show full diagram with starter prompts
   return (
     <div className="relative h-full bg-black overflow-hidden">
+      {/* gridailogo background for starter screen */}
+      {!hasDiagram && (
+        <div className="absolute inset-0 gridailogo-bg" aria-hidden="true" />
+      )}
       {/* Loading overlay with blur */}
       {isLoading && (
         <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white/20 border-t-white/80 rounded-full animate-spin" />
-            <p className="text-sm text-white/70 font-medium">Generating diagram...</p>
+            <p className="text-base text-white/70 font-medium">Generating diagram...</p>
           </div>
         </div>
       )}
       {!hasDiagram && (
-        <div className="h-full w-full flex items-center justify-center px-6">
+        <div className="relative h-full w-full flex items-center justify-center px-6 z-10">
           <div className="max-w-3xl w-full text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <img src={logoUrl} alt="grid logo" className="h-16 w-16 rounded-full bg-white" />
-              <h1 className="text-4xl text-white tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 900 }}>Grid.</h1>
+              <h1 className="text-4xl text-black tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 900 }}>Grid.</h1>
             </div>
-            <p className="text-sm text-white/60 mb-8">Pick a starting point or ask anything.</p>
+            <p className="text-base text-gray-700 mb-8">Pick a starting point or ask anything.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mx-auto">
               {starterPrompts.map(({ title, prompt }) => (
                 <button
                   key={title}
                   onClick={() => onQuickPrompt && onQuickPrompt(prompt)}
-                  className="text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white px-4 py-3 transition-colors focus:outline-none focus:ring-1 focus:ring-white/10"
+                  className="text-left rounded-xl border border-gray-300 bg-white/80 hover:bg-white text-gray-900 px-4 py-3 transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400"
                 >
-                  <div className="text-sm font-medium">{title}</div>
-                  <div className="text-xs text-white/60 mt-1">{prompt}</div>
+                  <div className="text-base font-medium">{title}</div>
+                  <div className=" text-gray-600 mt-1">{prompt}</div>
                 </button>
               ))}
             </div>

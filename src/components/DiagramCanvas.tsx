@@ -4,7 +4,7 @@
  * Renders a tldraw canvas with a diagram generated from a DiagramSpec.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tldraw, Editor } from '@tldraw/tldraw';
 import 'tldraw/tldraw.css';
 import { applyDiagramToEditor } from '../lib/diagramConverter';
@@ -16,18 +16,17 @@ interface DiagramCanvasProps {
 
 export function DiagramCanvas({ spec }: DiagramCanvasProps) {
   const editorRef = useRef<Editor | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
 
+  // Apply diagram once editor is ready and spec changes
   useEffect(() => {
-    if (editorRef.current && spec) {
-      applyDiagramToEditor(editorRef.current, spec).catch(console.error);
-    }
-  }, [spec]);
+    if (!editorRef.current || !editorReady || !spec) return;
+    applyDiagramToEditor(editorRef.current, spec).catch(console.error);
+  }, [spec, editorReady]);
 
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
-    if (spec) {
-      applyDiagramToEditor(editor, spec).catch(console.error);
-    }
+    setEditorReady(true);
   };
 
   if (!spec) {
