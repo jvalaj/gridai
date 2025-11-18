@@ -5,6 +5,7 @@
  */
 
 import { DiagramCanvas } from './DiagramCanvas';
+import { MessageInput } from './MessageInput';
 import type { Message } from '../types/index';
 import logoUrl from '../gridailogo.png';
 
@@ -108,9 +109,9 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
     );
   }
 
-  // Main canvas mode - show full diagram with starter prompts
+  // Main canvas mode - show full diagram with chat input at bottom
   return (
-    <div className="relative h-full bg-black overflow-hidden">
+    <div className="relative h-full bg-black overflow-hidden flex flex-col">
       {/* gridailogo background for starter screen */}
       {!hasDiagram && (
         <div className="absolute inset-0 gridailogo-bg" aria-hidden="true" />
@@ -124,32 +125,43 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
           </div>
         </div>
       )}
-      {!hasDiagram && (
-        <div className="relative h-full w-full flex items-center justify-center px-6 z-10">
-          <div className="max-w-3xl w-full text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <img src={logoUrl} alt="grid logo" className="h-16 w-16 rounded-full bg-white" />
-              <h1 className="text-4xl text-black tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 900 }}>Grid.</h1>
-            </div>
-            <p className="text-base text-gray-700 mb-8">Pick a starting point or ask anything.</p>
+      
+      {/* Diagram area */}
+      <div className="flex-1 overflow-hidden relative">
+        {!hasDiagram && (
+          <div className="relative h-full w-full flex items-center justify-center px-6 z-10">
+            <div className="max-w-3xl w-full text-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <img src={logoUrl} alt="grid logo" className="h-16 w-16 rounded-full bg-white" />
+                <h1 className="text-4xl text-black tracking-tight" style={{ fontFamily: '"Doto", sans-serif', fontWeight: 900 }}>Grid.</h1>
+              </div>
+              <p className="text-base text-gray-700 mb-8">Pick a starting point or ask anything.</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mx-auto">
-              {starterPrompts.map(({ title, prompt }) => (
-                <button
-                  key={title}
-                  onClick={() => onQuickPrompt && onQuickPrompt(prompt)}
-                  className="text-left rounded-xl border border-gray-300 bg-white/80 hover:bg-white text-gray-900 px-4 py-3 transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400"
-                >
-                  <div className="text-base font-medium">{title}</div>
-                  <div className=" text-gray-600 mt-1">{prompt}</div>
-                </button>
-              ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mx-auto">
+                {starterPrompts.map(({ title, prompt }) => (
+                  <button
+                    key={title}
+                    onClick={() => onQuickPrompt && onQuickPrompt(prompt)}
+                    className="text-left rounded-xl border border-gray-300 bg-white/80 hover:bg-white text-gray-900 px-4 py-3 transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  >
+                    <div className="text-base font-medium">{title}</div>
+                    <div className=" text-gray-600 mt-1">{prompt}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+        )}
+
+        {hasDiagram && <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} />}
+      </div>
+      
+      {/* Chat input at bottom */}
+      {onQuickPrompt && (
+        <div className="border-t border-white/10 bg-black/60">
+          <MessageInput onSend={onQuickPrompt} isLoading={isLoading} />
         </div>
       )}
-
-      {hasDiagram && <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} />}
     </div>
   );
 }

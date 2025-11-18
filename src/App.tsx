@@ -14,7 +14,6 @@
 
 import React from 'react';
 import { useChat } from './hooks/useChat';
-import { ChatPanel } from './components/ChatPanel';
 import { DiagramPanel } from './components/DiagramPanel';
 import { ResizablePanel } from './components/ResizablePanel';
 import logoUrl from './gridailogo.png';
@@ -49,18 +48,11 @@ function App() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main content - Claude-like layout */}
       <main className="flex-1 flex overflow-hidden">
-        <ResizablePanel direction="horizontal" initialSize={420} minSize={320} maxSize={600}>
-          {/* Left panel: Chat + Diagram History */}
-          <ResizablePanel direction="vertical" initialSize={400} minSize={200}>
-            {/* Chat section - top half */}
-            <ChatPanel
-              messages={messages}
-              onSend={sendMessage}
-              isLoading={isLoading}
-            />
-            {/* Diagram history - bottom half */}
+        <ResizablePanel direction="horizontal" initialSize={280} minSize={240} maxSize={400}>
+          {/* Left sidebar: Diagram history only */}
+          <div className="h-full border-r border-white/10">
             <DiagramPanel 
               messages={messages} 
               onQuickPrompt={sendMessage}
@@ -68,10 +60,10 @@ function App() {
               onSelectMessage={setSelectedMessageId}
               isLoading={isLoading}
             />
-          </ResizablePanel>
+          </div>
 
-          {/* Right panel: Main diagram canvas */}
-          <div className="hidden md:block h-full">
+          {/* Right main area: Diagram canvas with chat input at bottom */}
+          <div className="flex-1 h-full flex flex-col">
             <DiagramPanel 
               messages={messages} 
               onQuickPrompt={sendMessage} 

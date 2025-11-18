@@ -2,14 +2,16 @@
  * DiagramCanvas Component
  * 
  * Renders a tldraw canvas with a diagram generated from a DiagramSpec.
- * Persists user edits and prevents re-rendering when navigating between diagrams.
+ * Simplified: no localStorage persistence, always re-applies the selected diagram.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tldraw, Editor } from '@tldraw/tldraw';
 import 'tldraw/tldraw.css';
 import { applyDiagramToEditor } from '../lib/diagramConverter';
 import type { DiagramSpec } from '../types/index';
+import { diagramSnapshotCache } from '../lib/diagramCache';
+import { loadSnapshot as loadStoredSnapshot, saveSnapshot as saveStoredSnapshot, clearSnapshot as clearStoredSnapshot } from '../lib/diagramStorage';
 
 interface DiagramCanvasProps {
   spec: DiagramSpec | null;
@@ -20,84 +22,53 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
   const editorRef = useRef<Editor | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const isRestoringRef = useRef(false);
-  const isGeneratingRef = useRef(false);
-
-  // Generate a unique key for this diagram's edits
-  const getStorageKey = useCallback(() => {
-    return `diagram_edits_${messageId}`;
-  }, [messageId]);
-
-  // Save current diagram state to localStorage
-  const saveDiagramState = useCallback(() => {
-    if (!editorRef.current || !messageId) return;
-    
-    try {
-      const snapshot = editorRef.current.getSnapshot();
-      const storageKey = getStorageKey();
-      localStorage.setItem(storageKey, JSON.stringify(snapshot));
-      console.log('Saved diagram state for message:', messageId);
-    } catch (e) {
-      console.error('Failed to save diagram state:', e);
-    }
-  }, [messageId, getStorageKey]);
-
-  // Load saved diagram state from localStorage
-  const loadDiagramState = useCallback(() => {
-    if (!editorRef.current || !messageId) {
-      console.log('Cannot load diagram state: editor or messageId missing');
-      return false;
-    }
-    
-    try {
-      const storageKey = getStorageKey();
-      const savedState = localStorage.getItem(storageKey);
-      
-      if (savedState) {
-        console.log('Found saved state for message:', messageId, 'key:', storageKey);
-        const snapshot = JSON.parse(savedState);
-        isRestoringRef.current = true;
-        editorRef.current.loadSnapshot(snapshot);
-        // Add a small delay before allowing saves again to prevent immediate re-save
-        setTimeout(() => {
-          isRestoringRef.current = false;
-        }, 100);
-        console.log('Successfully restored diagram state for message:', messageId);
-        return true;
-      } else {
-        console.log('No saved state found for message:', messageId, 'key:', storageKey);
-      }
-    } catch (e) {
-      console.error('Failed to load diagram state for message:', messageId, e);
-      isRestoringRef.current = false;
-    }
-    return false;
-  }, [messageId, getStorageKey]);
+  const saveTimerRef = useRef<number | null>(null);
 
   // Apply diagram when spec or messageId changes
   useEffect(() => {
-    if (!editorRef.current || !editorReady || !spec || !messageId) return;
-    
-    // Always try to load saved edits first for this messageId
-    if (loadDiagramState()) {
-      console.log('Loaded saved edits for message:', messageId);
-      return; // Successfully loaded saved edits
+    const editor = editorRef.current;
+    if (!editor || !editorReady || !spec || !messageId) return;
+
+    const cached = diagramSnapshotCache.get(messageId);
+    if (cached) {
+      // Load from cache without regenerating shapes
+      try {
+        isRestoringRef.current = true;
+        editor.loadSnapshot(cached);
+      } finally {
+        // small timeout to avoid immediate re-save churn
+        setTimeout(() => (isRestoringRef.current = false), 50);
+      }
+      return;
     }
-    
-    // No saved edits, generate fresh diagram
-    console.log('No saved edits found, generating fresh diagram for spec:', spec.title);
-    isGeneratingRef.current = true;
-    applyDiagramToEditor(editorRef.current, spec)
+
+    // Try persistent storage next (only if cache miss)
+    const stored = loadStoredSnapshot(messageId, spec);
+    if (stored) {
+      try {
+        isRestoringRef.current = true;
+        editor.loadSnapshot(stored);
+        // hydrate memory cache
+        diagramSnapshotCache.set(messageId, stored);
+      } finally {
+        setTimeout(() => (isRestoringRef.current = false), 50);
+      }
+      return;
+    }
+
+    // No cache: generate from spec, then cache a snapshot
+    applyDiagramToEditor(editor, spec)
       .then(() => {
-        // Allow saves after a short delay to ensure diagram is fully rendered
-        setTimeout(() => {
-          isGeneratingRef.current = false;
-        }, 500);
+        try {
+          const snap = editor.getSnapshot();
+          diagramSnapshotCache.set(messageId, snap);
+          saveStoredSnapshot(messageId, spec, snap);
+        } catch (e) {
+          console.error('Failed to cache snapshot:', e);
+        }
       })
-      .catch(err => {
-        console.error(err);
-        isGeneratingRef.current = false;
-      });
-  }, [spec, messageId, editorReady]); // Removed loadDiagramState from deps to prevent unnecessary re-runs
+      .catch(console.error);
+  }, [spec, messageId, editorReady]);
 
   const handleMount = (editor: Editor) => {
     console.log('Tldraw mounted for messageId:', messageId);
@@ -105,26 +76,33 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
     setEditorReady(true);
   };
 
-  // Set up change listener after editor is ready
+  // Keep cache updated with user edits for the current messageId
   useEffect(() => {
-    if (!editorRef.current || !editorReady) return;
-
     const editor = editorRef.current;
-    
-    // Listen for changes to save state
-    const handleChange = () => {
-      if (!isRestoringRef.current && !isGeneratingRef.current) {
-        saveDiagramState();
+    if (!editor || !editorReady || !messageId) return;
+
+    const onChange = () => {
+      if (isRestoringRef.current) return;
+      try {
+        const snap = editor.getSnapshot();
+        diagramSnapshotCache.set(messageId, snap);
+        // Debounce persistent saves to reduce churn
+        if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = window.setTimeout(() => {
+          if (spec && messageId) {
+            saveStoredSnapshot(messageId, spec, snap);
+          }
+        }, 250);
+      } catch (e) {
+        // ignore
       }
     };
 
-    editor.on('change', handleChange);
-
-    // Cleanup
+    editor.on('change', onChange);
     return () => {
-      editor.off('change', handleChange);
+      editor.off('change', onChange);
     };
-  }, [editorReady, saveDiagramState]);
+  }, [editorReady, messageId]);
 
   if (!spec) {
     return (
@@ -166,17 +144,23 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
       <div className="absolute top-6 right-6 z-10 flex gap-2">
         <button 
           onClick={() => {
-            // Clear saved edits and regenerate
-            if (messageId) {
-              const storageKey = getStorageKey();
-              localStorage.removeItem(storageKey);
-              // Clear the canvas and regenerate
-              if (editorRef.current && spec) {
-                editorRef.current.selectAll();
-                editorRef.current.deleteShapes(editorRef.current.getSelectedShapeIds());
-                applyDiagramToEditor(editorRef.current, spec).catch(console.error);
-              }
-            }
+            // Clear cache for this diagram and regenerate from spec
+            if (!spec) return;
+            if (messageId) diagramSnapshotCache.delete(messageId);
+            if (messageId) clearStoredSnapshot(messageId);
+            const editor = editorRef.current;
+            if (!editor) return;
+            editor.selectAll();
+            editor.deleteShapes(editor.getSelectedShapeIds());
+            applyDiagramToEditor(editor, spec)
+              .then(() => {
+                try {
+                  const snap = editor.getSnapshot();
+                  if (messageId) diagramSnapshotCache.set(messageId, snap);
+                  if (messageId) saveStoredSnapshot(messageId, spec, snap);
+                } catch {}
+              })
+              .catch(console.error);
           }}
           className="bg-black/70 backdrop-blur-lg px-3 py-2 rounded-lg text-white text-sm hover:bg-black/80 transition-colors"
           title="Reset to original diagram"
@@ -210,7 +194,8 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
         </button>
       </div>
       
-      <Tldraw key={messageId} onMount={handleMount} />
+      {/* Keep a single editor instance; we load snapshots when switching */}
+      <Tldraw onMount={handleMount} />
     </div>
   );
 }

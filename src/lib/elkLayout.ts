@@ -3,6 +3,7 @@ import type { DiagramSpec } from '../types/index';
 
 export interface ElkLayoutResult {
   nodePositions: Map<string, { x: number; y: number }>; // top-left
+  edgeRoutes?: Map<string, { sections: Array<{ startPoint: {x: number, y: number}, endPoint: {x: number, y: number}, bendPoints?: Array<{x: number, y: number}> }> }>;
 }
 
 const NODE_W = 220;
@@ -29,14 +30,17 @@ export async function computeElkLayout(spec: DiagramSpec): Promise<ElkLayoutResu
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': direction,
-      'elk.layered.spacing.nodeNodeBetweenLayers': '150', // Increased spacing
-      'elk.spacing.nodeNode': '80',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+      'elk.spacing.nodeNode': '100',
       'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-      'elk.layered.cycleBreaking.strategy': 'GREEDY', // Better cycle handling
+      'elk.layered.cycleBreaking.strategy': 'GREEDY',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.edgeRouting': 'SPLINES', // Curved edges
-      'elk.layered.unnecessaryBendpoints': 'true', // Cleaner edges
-      'elk.layered.mergeEdges': 'true' // Merge parallel edges
+      'elk.layered.crossingMinimization.semiInteractive': 'true',
+      'elk.edgeRouting': 'ORTHOGONAL', // Orthogonal routing prevents crossings better
+      'elk.layered.unnecessaryBendpoints': 'false',
+      'elk.layered.mergeEdges': 'false',
+      'elk.spacing.edgeNode': '50', // Space between edges and nodes
+      'elk.spacing.edgeEdge': '30' // Space between edges
     },
     children: spec.nodes.map((n: any, i: number) => ({ 
       id: n.id, 
@@ -63,7 +67,16 @@ export async function computeElkLayout(spec: DiagramSpec): Promise<ElkLayoutResu
   for (const child of res.children ?? []) {
     map.set(child.id, { x: child.x ?? 0, y: child.y ?? 0 });
   }
-  return { nodePositions: map };
+  
+  // Capture edge routing information
+  const edgeRoutes = new Map();
+  for (const edge of res.edges ?? []) {
+    if (edge.sections && edge.sections.length > 0) {
+      edgeRoutes.set(edge.id, { sections: edge.sections });
+    }
+  }
+  
+  return { nodePositions: map, edgeRoutes };
 }
 
 export const LayoutConstants = { NODE_W, NODE_H };

@@ -125,9 +125,23 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
           fill: 'semi',
           dash: 'solid',
           size: 'm',
-          text: labelText,
+          richText: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: labelText
+                  }
+                ]
+              }
+            ]
+          },
           align: 'middle',
           verticalAlign: 'middle',
+          labelColor: 'black',
           font: 'sans',
         },
       });
@@ -172,7 +186,7 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
       
       if (!fromShapeId || !toShapeId || !fromPos || !toPos) continue;
 
-      // Get node sizes for anchor calculation
+      // Get node sizes for center calculation
       const fromNode = spec.nodes.find(n => n.id === edge.from);
       const toNode = spec.nodes.find(n => n.id === edge.to);
       const fromTextWidth = fromNode ? (fromNode.label.length * 8 + 40) : LayoutConstants.NODE_W;
@@ -180,27 +194,44 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
       const fromWidth = Math.max(LayoutConstants.NODE_W, Math.min(300, fromTextWidth));
       const toWidth = Math.max(LayoutConstants.NODE_W, Math.min(300, toTextWidth));
 
-      const start = anchorOnRect(fromPos, toPos, fromWidth, LayoutConstants.NODE_H);
-      const end = anchorOnRect(toPos, fromPos, toWidth, LayoutConstants.NODE_H);
+      // Connect arrows to shape centers
+      const fromCenterX = fromPos.x + fromWidth / 2;
+      const fromCenterY = fromPos.y + LayoutConstants.NODE_H / 2;
+      const toCenterX = toPos.x + toWidth / 2;
+      const toCenterY = toPos.y + LayoutConstants.NODE_H / 2;
 
       const arrowId = createShapeId();
 
+      // Calculate bend to avoid crossings
+      const dx = toCenterX - fromCenterX;
+      const dy = toCenterY - fromCenterY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Use higher bend for longer distances to route around obstacles
+      const bendAmount = distance > 300 ? 0.4 : distance > 200 ? 0.2 : 0;
+
+      // Create arrow with proper coordinate format
       editor.createShape({
         type: 'arrow',
         id: arrowId,
-        x: start.x,
-        y: start.y,
+        x: fromCenterX,
+        y: fromCenterY,
         opacity: 0,
         props: {
-          start: { x: 0, y: 0 },
-          end: { x: end.x - start.x, y: end.y - start.y },
+          start: { 
+            x: 0,
+            y: 0
+          },
+          end: { 
+            x: toCenterX - fromCenterX,
+            y: toCenterY - fromCenterY
+          },
           color: 'black',
-          size: 'l', // Larger arrows
-          dash: spec.type === 'flowchart' ? 'dashed' : 'solid', // Different styles for flowcharts
+          size: 'm',
+          dash: spec.type === 'flowchart' ? 'dashed' : 'solid',
           arrowheadStart: 'none',
           arrowheadEnd: 'arrow',
-          // Add curved edges for certain diagram types
-          bend: spec.type === 'directed-graph' ? 0.3 : 0,
+          bend: bendAmount,
           richText: edge.label ? {
             type: 'doc',
             content: [
@@ -218,12 +249,27 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
           font: 'sans',
         },
       });
+      
+      // Fade in arrow with proper animation
+      setTimeout(() => {
+        editor.updateShape({ id: arrowId, type: 'arrow', opacity: 0.8 });
+      }, 50);
 
       // Fade in arrow with proper animation
       setTimeout(() => {
-        editor.updateShape({ id: arrowId, type: 'arrow', opacity: 1 });
+        editor.updateShape({ id: arrowId, type: 'arrow', opacity: 0.8 });
       }, 50);
     }
+    
+    // Bring all nodes to front after arrows are created
+    setTimeout(() => {
+      const arrowIds = Array.from(editor.getCurrentPageShapeIds()).filter(id => 
+        editor.getShape(id)?.type === 'arrow'
+      );
+      if (arrowIds.length > 0) {
+        editor.sendToBack(arrowIds);
+      }
+    }, 100);
   }, animationWaves * 300 + 200);
 
   // Zoom to fit all shapes
@@ -500,13 +546,17 @@ function layoutTree(nodes: DiagramNode[], edges: any[]): Map<string, LayoutPosit
  * Maps node kind to tldraw geo shape type
  */
 function getShapeForKind(kind: string): string {
+  // Valid tldraw geo shapes: cloud, rectangle, ellipse, triangle, diamond, pentagon, 
+  // hexagon, octagon, star, rhombus, rhombus-2, oval, trapezoid, arrow-right, 
+  // arrow-left, arrow-up, arrow-down, x-box, check-box, heart
+  
   switch (kind) {
     case 'actor':
       return 'ellipse'; // Round shape for people/users
     case 'service':
       return 'rectangle'; // Standard box for services
     case 'db':
-      return 'cylinder'; // Cylinder for databases (classic DB shape)
+      return 'octagon'; // Octagon for databases
     case 'queue':
       return 'hexagon'; // Hexagon for queues
     case 'component':
@@ -516,7 +566,7 @@ function getShapeForKind(kind: string): string {
     case 'cache':
       return 'rhombus'; // Diamond for cache
     case 'storage':
-      return 'cylinder'; // Cylinder for storage
+      return 'octagon'; // Octagon for storage
     case 'external':
       return 'cloud'; // Cloud for external services
     case 'ui':
