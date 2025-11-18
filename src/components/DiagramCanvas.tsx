@@ -16,9 +16,10 @@ import { loadSnapshot as loadStoredSnapshot, saveSnapshot as saveStoredSnapshot,
 interface DiagramCanvasProps {
   spec: DiagramSpec | null;
   messageId?: string; // Add messageId to identify which diagram this is
+  prompt?: string;
 }
 
-export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
+export function DiagramCanvas({ spec, messageId, prompt }: DiagramCanvasProps) {
   const editorRef = useRef<Editor | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const isRestoringRef = useRef(false);
@@ -57,7 +58,7 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
     }
 
     // No cache: generate from spec, then cache a snapshot
-    applyDiagramToEditor(editor, spec)
+    applyDiagramToEditor(editor, spec, prompt)
       .then(() => {
         try {
           const snap = editor.getSnapshot();
@@ -152,7 +153,7 @@ export function DiagramCanvas({ spec, messageId }: DiagramCanvasProps) {
             if (!editor) return;
             editor.selectAll();
             editor.deleteShapes(editor.getSelectedShapeIds());
-            applyDiagramToEditor(editor, spec)
+            applyDiagramToEditor(editor, spec, prompt)
               .then(() => {
                 try {
                   const snap = editor.getSnapshot();

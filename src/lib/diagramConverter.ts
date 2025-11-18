@@ -42,15 +42,46 @@ function anchorOnRect(a: LayoutPosition, b: LayoutPosition, w: number, h: number
 /**
  * Applies a DiagramSpec to a tldraw editor instance
  */
-export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
+export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, promptText?: string) {
   console.log('Applying diagram to editor:', spec);
   
   // Clear existing shapes
   editor.selectAll();
   editor.deleteShapes(editor.getSelectedShapeIds());
 
+  // Optionally add a prompt header as a text shape at the top
+  const hasPrompt = !!(promptText && promptText.trim().length > 0)
+  if (hasPrompt) {
+    const headerId = createShapeId();
+    editor.createShape({
+      type: 'text',
+      id: headerId,
+      x: 80,
+      y: 24,
+      props: {
+        // Use richText so we stay consistent with tldraw v2
+        richText: {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: promptText }
+              ]
+            }
+          ]
+        },
+        color: 'black',
+        size: 'm',
+        font: 'draw',
+        textAlign: 'start',
+      },
+    });
+  }
+
   // Try ELK layered layout first; fallback to internal layout
   let nodePositions: Map<string, LayoutPosition>;
+  const yOffset = hasPrompt ? 120 : 0;
   try {
     const res = await computeElkLayout(spec);
     nodePositions = res.nodePositions as Map<string, LayoutPosition>;
@@ -94,7 +125,7 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
         type: 'note',
         id: shapeId,
         x: pos.x,
-        y: pos.y,
+        y: pos.y + yOffset,
         rotation: 0,
         opacity: 1,
         props: {
@@ -114,7 +145,7 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
         type: 'geo',
         id: shapeId,
         x: pos.x,
-        y: pos.y,
+        y: pos.y + yOffset,
         rotation: 0,
         opacity: 1,
         props: {
@@ -196,9 +227,9 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
 
       // Connect arrows to shape centers
       const fromCenterX = fromPos.x + fromWidth / 2;
-      const fromCenterY = fromPos.y + LayoutConstants.NODE_H / 2;
+      const fromCenterY = fromPos.y + yOffset + LayoutConstants.NODE_H / 2;
       const toCenterX = toPos.x + toWidth / 2;
-      const toCenterY = toPos.y + LayoutConstants.NODE_H / 2;
+      const toCenterY = toPos.y + yOffset + LayoutConstants.NODE_H / 2;
 
       const arrowId = createShapeId();
 

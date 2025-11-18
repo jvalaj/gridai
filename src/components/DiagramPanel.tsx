@@ -34,6 +34,15 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
     : null;
 
   const selectedSpec = selectedMessage?.metadata?.diagramSpec || null;
+  // Find the user's prompt that led to the selected diagram
+  const selectedPrompt = (() => {
+    if (!selectedMessage) return null;
+    const idx = messages.findIndex((m) => m.id === selectedMessage.id);
+    if (idx > 0 && messages[idx - 1].role === 'user') {
+      return messages[idx - 1].content;
+    }
+    return null;
+  })();
 
   const starterPrompts: { title: string; prompt: string }[] = [
     { title: 'Microservices Architecture', prompt: 'Use a deployment diagram: Show a microservices architecture with API gateway, services, and databases' },
@@ -213,7 +222,9 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
           </div>
         )}
 
-        {hasDiagram && <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} />}
+        {hasDiagram && (
+          <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} prompt={selectedPrompt || undefined} />
+        )}
       </div>
       
       {/* Disabled input placeholder at bottom (only show when there's a diagram) */}
