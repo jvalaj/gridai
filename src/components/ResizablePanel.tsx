@@ -93,7 +93,7 @@ export function ResizablePanel({
         <div
           className={`
             absolute inset-0
-            ${isHorizontal ? 'w-3 -left-1' : 'h-3 -top-1'}
+            ${isHorizontal ? 'w-1 -left-1' : 'h-3 -top-1'}
           `}
         />
       </div>

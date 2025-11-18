@@ -207,8 +207,8 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
       const dy = toCenterY - fromCenterY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // Use higher bend for longer distances to route around obstacles
-      const bendAmount = distance > 300 ? 0.4 : distance > 200 ? 0.2 : 0;
+      // Use higher bend for longer distances to route around obstacles (bend is in pixels)
+      const bendAmount = distance > 400 ? 80 : distance > 250 ? 50 : 30;
 
       // Create arrow with proper coordinate format
       editor.createShape({
@@ -245,7 +245,15 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec) {
                 ]
               }
             ]
-          } : undefined,
+          } : {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: []
+              }
+            ]
+          },
           font: 'sans',
         },
       });
@@ -292,6 +300,18 @@ function calculateLayout(spec: DiagramSpec): Map<string, LayoutPosition> {
       return layoutTree(spec.nodes, spec.edges);
     case 'flowchart':
       return layoutFlowchart(spec.nodes, spec.edges);
+    case 'state-machine':
+      return layoutStateMachine(spec.nodes, spec.edges);
+    case 'entity-relationship':
+      return layoutEntityRelationship(spec.nodes, spec.edges);
+    case 'network':
+      return layoutNetwork(spec.nodes, spec.edges);
+    case 'timeline':
+      return layoutTimeline(spec.nodes, spec.edges);
+    case 'class-diagram':
+      return layoutClassDiagram(spec.nodes, spec.edges);
+    case 'deployment':
+      return layoutDeployment(spec.nodes, spec.edges);
     case 'directed-graph':
     default:
       return layoutDirectedGraph(spec.nodes, spec.edges);
@@ -303,10 +323,10 @@ function calculateLayout(spec: DiagramSpec): Map<string, LayoutPosition> {
  */
 function layoutSequence(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, LayoutPosition> {
   const positions = new Map<string, LayoutPosition>();
-  const startX = 150;
-  const startY = 300;
-  const horizontalSpacing = 400;
-  const verticalSpacing = 250;
+  const startX = 200;
+  const startY = 350;
+  const horizontalSpacing = 750; // Increased for more space between columns
+  const verticalSpacing = 450; // Increased for more space between rows
 
   // Build adjacency list
   const graph = new Map<string, string[]>();
@@ -375,10 +395,10 @@ function layoutSequence(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string,
 function layoutDirectedGraph(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, LayoutPosition> {
   const positions = new Map<string, LayoutPosition>();
   
-  const centerX = 600;
-  const centerY = 400;
-  const horizontalSpacing = 450;
-  const verticalSpacing = 280;
+  const centerX = 700;
+  const centerY = 450;
+  const horizontalSpacing = 600; // Increased from 450
+  const verticalSpacing = 380; // Increased from 280
 
   // Layer-based positioning
   const layers = assignLayers(nodes, edges);
@@ -403,10 +423,10 @@ function layoutDirectedGraph(nodes: DiagramNode[], edges: DiagramEdge[]): Map<st
  */
 function layoutFlowchart(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, LayoutPosition> {
   const positions = new Map<string, LayoutPosition>();
-  const startX = 600;
-  const startY = 100;
-  const verticalSpacing = 250;
-  const horizontalSpacing = 400;
+  const startX = 700;
+  const startY = 150;
+  const verticalSpacing = 350; // Increased from 250
+  const horizontalSpacing = 550; // Increased from 400
 
   const layers = assignLayers(nodes, edges);
 
@@ -492,10 +512,10 @@ function layoutTree(nodes: DiagramNode[], edges: any[]): Map<string, LayoutPosit
     return layoutDirectedGraph(nodes, edges);
   }
 
-  const startX = 400;
-  const startY = 100;
-  const levelHeight = 250;
-  const nodeWidth = 350;
+  const startX = 500;
+  const startY = 150;
+  const levelHeight = 350; // Increased from 250
+  const nodeWidth = 500; // Increased from 350
 
   // Simple level-based layout
   const levels: DiagramNode[][] = [];
@@ -543,6 +563,173 @@ function layoutTree(nodes: DiagramNode[], edges: any[]): Map<string, LayoutPosit
 }
 
 /**
+ * State machine layout - circular with central starting state
+ */
+function layoutStateMachine(nodes: DiagramNode[], _edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  const positions = new Map<string, LayoutPosition>();
+  const centerX = 600;
+  const centerY = 400;
+  const radius = 350;
+  
+  // Circular layout for states
+  nodes.forEach((node, index) => {
+    const angle = (index / nodes.length) * 2 * Math.PI;
+    positions.set(node.id, {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    });
+  });
+  
+  return positions;
+}
+
+/**
+ * Entity-relationship layout - grid-based with entities as clusters
+ */
+function layoutEntityRelationship(nodes: DiagramNode[], _edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  const positions = new Map<string, LayoutPosition>();
+  const startX = 300;
+  const startY = 200;
+  const horizontalSpacing = 600;
+  const verticalSpacing = 400;
+  const cols = Math.ceil(Math.sqrt(nodes.length));
+  
+  nodes.forEach((node, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    positions.set(node.id, {
+      x: startX + col * horizontalSpacing,
+      y: startY + row * verticalSpacing,
+    });
+  });
+  
+  return positions;
+}
+
+/**
+ * Network topology layout - hierarchical with hub at center
+ */
+function layoutNetwork(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  const positions = new Map<string, LayoutPosition>();
+  
+  // Find hub nodes (nodes with most connections)
+  const connectionCount = new Map<string, number>();
+  edges.forEach(edge => {
+    connectionCount.set(edge.from, (connectionCount.get(edge.from) || 0) + 1);
+    connectionCount.set(edge.to, (connectionCount.get(edge.to) || 0) + 1);
+  });
+  
+  const sortedNodes = [...nodes].sort((a, b) => 
+    (connectionCount.get(b.id) || 0) - (connectionCount.get(a.id) || 0)
+  );
+  
+  const centerX = 600;
+  const centerY = 400;
+  const innerRadius = 250;
+  const outerRadius = 500;
+  
+  // Place hub nodes in inner circle
+  const hubCount = Math.min(3, Math.floor(nodes.length * 0.3));
+  sortedNodes.slice(0, hubCount).forEach((node, index) => {
+    const angle = (index / hubCount) * 2 * Math.PI;
+    positions.set(node.id, {
+      x: centerX + innerRadius * Math.cos(angle),
+      y: centerY + innerRadius * Math.sin(angle),
+    });
+  });
+  
+  // Place other nodes in outer circle
+  const peripheralNodes = sortedNodes.slice(hubCount);
+  peripheralNodes.forEach((node, index) => {
+    const angle = (index / peripheralNodes.length) * 2 * Math.PI;
+    positions.set(node.id, {
+      x: centerX + outerRadius * Math.cos(angle),
+      y: centerY + outerRadius * Math.sin(angle),
+    });
+  });
+  
+  return positions;
+}
+
+/**
+ * Timeline layout - strictly horizontal left-to-right
+ */
+function layoutTimeline(nodes: DiagramNode[], _edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  const positions = new Map<string, LayoutPosition>();
+  const startX = 200;
+  const y = 400;
+  const spacing = 600;
+  
+  // Simple horizontal timeline
+  nodes.forEach((node, index) => {
+    positions.set(node.id, {
+      x: startX + index * spacing,
+      y: y,
+    });
+  });
+  
+  return positions;
+}
+
+/**
+ * Class diagram layout - grouped by relationships
+ */
+function layoutClassDiagram(nodes: DiagramNode[], _edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  // Similar to entity-relationship but with tighter spacing
+  const positions = new Map<string, LayoutPosition>();
+  const startX = 300;
+  const startY = 200;
+  const horizontalSpacing = 500;
+  const verticalSpacing = 350;
+  const cols = Math.ceil(Math.sqrt(nodes.length));
+  
+  nodes.forEach((node, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    positions.set(node.id, {
+      x: startX + col * horizontalSpacing,
+      y: startY + row * verticalSpacing,
+    });
+  });
+  
+  return positions;
+}
+
+/**
+ * Deployment diagram layout - layered by environment/tier
+ */
+function layoutDeployment(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, LayoutPosition> {
+  const positions = new Map<string, LayoutPosition>();
+  const layers = assignLayers(nodes, edges);
+  const startX = 700;
+  const startY = 200;
+  const layerHeight = 400;
+  const nodeSpacing = 550;
+  
+  // Group nodes by layer and spread horizontally
+  const layerGroups = new Map<number, DiagramNode[]>();
+  nodes.forEach(node => {
+    const layer = layers.get(node.id) || 0;
+    if (!layerGroups.has(layer)) layerGroups.set(layer, []);
+    layerGroups.get(layer)!.push(node);
+  });
+  
+  layerGroups.forEach((nodesInLayer, layer) => {
+    const layerWidth = nodesInLayer.length * nodeSpacing;
+    const layerStartX = startX - layerWidth / 2;
+    
+    nodesInLayer.forEach((node, index) => {
+      positions.set(node.id, {
+        x: layerStartX + index * nodeSpacing,
+        y: startY + layer * layerHeight,
+      });
+    });
+  });
+  
+  return positions;
+}
+
+/**
  * Maps node kind to tldraw geo shape type
  */
 function getShapeForKind(kind: string): string {
@@ -552,37 +739,70 @@ function getShapeForKind(kind: string): string {
   
   switch (kind) {
     case 'actor':
-      return 'ellipse'; // Round shape for people/users
+      return 'ellipse';
     case 'service':
-      return 'rectangle'; // Standard box for services
+    case 'server':
+      return 'rectangle';
     case 'db':
-      return 'octagon'; // Octagon for databases
-    case 'queue':
-      return 'hexagon'; // Hexagon for queues
-    case 'component':
-      return 'rectangle'; // Clean rectangles for components
-    case 'process':
-      return 'trapezoid'; // Trapezoid for processes
-    case 'cache':
-      return 'rhombus'; // Diamond for cache
     case 'storage':
-      return 'octagon'; // Octagon for storage
+      return 'octagon';
+    case 'queue':
+    case 'stream':
+    case 'pubsub':
+      return 'hexagon';
+    case 'component':
+    case 'container':
+    case 'file':
+      return 'rectangle';
+    case 'process':
+    case 'function':
+    case 'lambda':
+      return 'trapezoid';
+    case 'cache':
+      return 'rhombus';
     case 'external':
-      return 'cloud'; // Cloud for external services
+    case 'cdn':
+      return 'cloud';
     case 'ui':
-      return 'rectangle'; // Rectangle for UI elements
+    case 'client':
+    case 'browser':
+    case 'mobile':
+      return 'rectangle';
     case 'api':
-      return 'hexagon'; // Hexagon for APIs
+    case 'webhook':
+      return 'hexagon';
     case 'gateway':
-      return 'pentagon'; // Pentagon for gateways
+    case 'proxy':
+    case 'router':
+      return 'pentagon';
     case 'lb':
     case 'loadbalancer':
-      return 'triangle'; // Triangle for load balancers
+      return 'triangle';
     case 'worker':
-      return 'oval'; // Oval for workers
+    case 'scheduler':
+      return 'oval';
+    case 'firewall':
+    case 'auth':
+      return 'diamond';
+    case 'monitoring':
+    case 'analytics':
+    case 'log':
+      return 'star';
+    case 'payment':
+    case 'email':
+    case 'notification':
+      return 'hexagon';
+    case 'backup':
+    case 'registry':
+      return 'octagon';
+    case 'orchestrator':
+    case 'switch':
+      return 'rhombus-2';
+    case 'search':
+      return 'hexagon';
     case 'note':
     case 'annotation':
-      return 'rectangle'; // Will use note type for these
+      return 'rectangle';
     default:
       return 'rectangle';
   }
@@ -594,37 +814,91 @@ function getShapeForKind(kind: string): string {
 function getIconForKind(kind: string): string {
   switch (kind) {
     case 'actor':
-      return '👤'; // Person icon
+      return '👤';
     case 'service':
-      return '🔧'; // Gear for service
+      return '🔧';
+    case 'server':
+      return '🖥️';
     case 'db':
-      return '🗄️'; // Database icon
+      return '🗄️';
     case 'queue':
-      return '📋'; // Queue/list icon
+      return '📋';
     case 'component':
-      return '📦'; // Package for component
+      return '📦';
     case 'process':
-      return '⚙️'; // Process wheel
+      return '⚙️';
     case 'cache':
-      return '⚡'; // Lightning for cache
+      return '⚡';
     case 'storage':
-      return '💾'; // Disk for storage
+      return '💾';
     case 'external':
-      return '☁️'; // Cloud for external
+      return '☁️';
     case 'ui':
-      return '🖥️'; // Screen for UI
+      return '🖥️';
+    case 'client':
+      return '💻';
+    case 'browser':
+      return '🌐';
+    case 'mobile':
+      return '📱';
     case 'api':
-      return '🔌'; // Plug for API
+      return '🔌';
     case 'gateway':
-      return '🚪'; // Door for gateway
+      return '🚪';
     case 'lb':
     case 'loadbalancer':
-      return '⚖️'; // Scale for load balancer
+      return '⚖️';
     case 'worker':
-      return '👷'; // Worker
+      return '👷';
+    case 'container':
+      return '📦';
+    case 'function':
+    case 'lambda':
+      return 'λ';
+    case 'cdn':
+      return '🌍';
+    case 'firewall':
+      return '🛡️';
+    case 'router':
+    case 'switch':
+      return '🔀';
+    case 'monitoring':
+      return '📊';
+    case 'analytics':
+      return '📈';
+    case 'auth':
+      return '🔐';
+    case 'payment':
+      return '💳';
+    case 'email':
+      return '📧';
+    case 'notification':
+      return '🔔';
+    case 'file':
+      return '📄';
+    case 'log':
+      return '📝';
+    case 'backup':
+      return '💿';
+    case 'scheduler':
+      return '⏰';
+    case 'orchestrator':
+      return '🎯';
+    case 'registry':
+      return '📚';
+    case 'search':
+      return '🔍';
+    case 'stream':
+      return '〰️';
+    case 'pubsub':
+      return '📡';
+    case 'webhook':
+      return '🪝';
+    case 'proxy':
+      return '🔄';
     case 'note':
     case 'annotation':
-      return '📝'; // Note
+      return '📝';
     default:
       return '●';
   }
@@ -638,32 +912,67 @@ function getColorForKind(kind: string): string {
     case 'actor':
       return 'blue';
     case 'service':
+    case 'server':
       return 'green';
     case 'db':
+    case 'storage':
+    case 'backup':
       return 'orange';
     case 'queue':
+    case 'stream':
+    case 'pubsub':
       return 'violet';
     case 'component':
+    case 'container':
       return 'light-blue';
     case 'process':
+    case 'function':
+    case 'lambda':
       return 'red';
     case 'cache':
       return 'yellow';
-    case 'storage':
-      return 'orange';
     case 'external':
+    case 'cdn':
       return 'grey';
     case 'ui':
+    case 'client':
       return 'blue';
+    case 'browser':
+    case 'mobile':
+      return 'light-blue';
     case 'api':
+    case 'webhook':
       return 'green';
     case 'gateway':
+    case 'proxy':
+    case 'router':
       return 'light-green';
     case 'lb':
     case 'loadbalancer':
       return 'light-violet';
     case 'worker':
+    case 'scheduler':
       return 'light-red';
+    case 'firewall':
+    case 'auth':
+      return 'red';
+    case 'monitoring':
+    case 'analytics':
+    case 'log':
+      return 'blue';
+    case 'payment':
+      return 'green';
+    case 'email':
+    case 'notification':
+      return 'yellow';
+    case 'file':
+      return 'grey';
+    case 'orchestrator':
+    case 'switch':
+      return 'violet';
+    case 'registry':
+    case 'search':
+      return 'light-violet';
     case 'note':
     case 'annotation':
       return 'yellow';

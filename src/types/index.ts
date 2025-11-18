@@ -1,7 +1,7 @@
 export interface DiagramNode {
   id: string;
   label: string;
-  kind: 'actor' | 'service' | 'db' | 'queue' | 'component' | 'process' | 'cache' | 'storage' | 'external' | 'ui' | 'api' | 'gateway' | 'lb' | 'loadbalancer' | 'worker' | 'note' | 'annotation' | 'other';
+  kind: 'actor' | 'service' | 'db' | 'queue' | 'component' | 'process' | 'cache' | 'storage' | 'external' | 'ui' | 'api' | 'gateway' | 'lb' | 'loadbalancer' | 'worker' | 'note' | 'annotation' | 'server' | 'client' | 'mobile' | 'browser' | 'container' | 'function' | 'lambda' | 'cdn' | 'firewall' | 'router' | 'switch' | 'monitoring' | 'analytics' | 'auth' | 'payment' | 'email' | 'notification' | 'file' | 'log' | 'backup' | 'scheduler' | 'orchestrator' | 'registry' | 'search' | 'stream' | 'pubsub' | 'webhook' | 'proxy' | 'other';
 }
 
 export interface DiagramEdge {
@@ -11,7 +11,7 @@ export interface DiagramEdge {
 }
 
 export interface DiagramSpec {
-  type: 'directed-graph' | 'sequence' | 'tree' | 'flowchart';
+  type: 'directed-graph' | 'sequence' | 'tree' | 'flowchart' | 'state-machine' | 'entity-relationship' | 'network' | 'timeline' | 'class-diagram' | 'deployment';
   title: string;
   nodes: DiagramNode[];
   edges: DiagramEdge[];

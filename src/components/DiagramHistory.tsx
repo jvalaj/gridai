@@ -37,9 +37,9 @@ export function DiagramHistory({ messages, selectedMessageId, onSelectDiagram }:
   const activeId = selectedMessageId || lastDiagramId;
 
   return (
-    <div className="h-full flex flex-col bg-black/40 backdrop-blur-sm border-r border-white/10">
+    <div className="h-full flex flex-col bg-black/40 backdrop-blur-sm border border-white/10">
       <div className="px-4 py-3 border-b border-white/10">
-        <h3 className="text-xs font-semibold text-white/90">Diagram History</h3>
+        <h3 className="text-xs font-semibold text-white/90">Chats</h3>
         <p className="text-[10px] text-white/50 mt-0.5">
           {diagramMessages.length} diagram{diagramMessages.length !== 1 ? 's' : ''}
         </p>

@@ -26,10 +26,10 @@ When a user asks a technical question, respond with ONLY valid JSON (no prose) u
 {
   "message": "1-2 sentence helpful summary to display in chat",
   "diagram": {
-    "type": "directed-graph" | "sequence" | "tree" | "flowchart",
+    "type": "directed-graph" | "sequence" | "tree" | "flowchart" | "state-machine" | "entity-relationship" | "network" | "timeline" | "class-diagram" | "deployment",
     "title": "Brief diagram title",
     "nodes": [
-      { "id": "unique-id", "label": "Short label", "kind": "actor|service|db|queue|component|process|cache|storage|external|ui|api|gateway|lb|loadbalancer|worker|note|annotation|other" }
+      { "id": "unique-id", "label": "Short label", "kind": "actor|service|server|db|queue|stream|pubsub|component|container|process|function|lambda|cache|storage|external|cdn|ui|client|browser|mobile|api|webhook|gateway|proxy|router|lb|loadbalancer|worker|scheduler|firewall|auth|monitoring|analytics|payment|email|notification|file|log|backup|orchestrator|switch|registry|search|note|annotation|other" }
     ],
     "edges": [
       { "from": "node-id", "to": "node-id", "label": "optional edge label" }
@@ -51,23 +51,41 @@ When a user asks a technical question, respond with ONLY valid JSON (no prose) u
   ]
 }
 
-Node kind guide:
-- actor: people/users (ellipse shape)
-- service: backend services (rectangle)
-- db: databases (cylinder)
+Node kind guide (use these to create visually diverse diagrams):
+- actor: people/users (ellipse)
+- service/server: backend services (rectangle)
+- db/storage/backup: databases, storage systems (octagon)
 - cache: cache layers like Redis (diamond)
-- storage: file/blob storage (cylinder)
-- queue: message queues (hexagon)
-- component: application components (rectangle)
-- process: background processes (trapezoid)
-- external: external APIs/services (cloud)
-- ui: user interfaces (rectangle)
-- api: API endpoints (hexagon)
-- gateway: API gateways (pentagon)
+- queue/stream/pubsub: message queues, event streams (hexagon)
+- component/container: application components, Docker containers (rectangle)
+- process/function/lambda: background processes, serverless functions (trapezoid)
+- external/cdn: external APIs, CDNs (cloud)
+- ui/client: user interfaces (rectangle)
+- browser/mobile: web browsers, mobile apps (rectangle)
+- api/webhook: API endpoints, webhooks (hexagon)
+- gateway/proxy/router: API gateways, proxies, routers (pentagon)
 - lb/loadbalancer: load balancers (triangle)
-- worker: worker processes (oval)
+- worker/scheduler: worker processes, job schedulers (oval)
+- firewall/auth: firewalls, authentication services (diamond)
+- monitoring/analytics/log: monitoring, analytics, logging (star)
+- payment/email/notification: payment, email, notification services (hexagon)
+- orchestrator/switch: orchestrators, network switches (rhombus)
+- registry/search: container registries, search engines (octagon/hexagon)
+- file: file systems (rectangle)
 - note/annotation: explanatory notes (sticky note)
 - other: generic nodes (rectangle)
+
+Diagram Types:
+- directed-graph: General system architecture, data flow (default)
+- sequence: Time-ordered interactions between components
+- tree: Hierarchical structures, org charts, decision trees
+- flowchart: Step-by-step processes, algorithms, workflows
+- state-machine: State transitions, FSMs, lifecycle diagrams
+- entity-relationship: Database schemas, data models
+- network: Network topology, infrastructure layout
+- timeline: Chronological events, project phases, history
+- class-diagram: OOP classes, inheritance, interfaces
+- deployment: Infrastructure deployment, environments, tiers
 
 Guidelines:
 - Choose the most readable diagram type and explain it in plan.type_choice
@@ -140,9 +158,110 @@ function generateStubDiagram(
     .reverse()
     .find(m => m.role === 'user')?.content.toLowerCase() || '';
 
+  // Optional explicit type hint: "use a <type> diagram" or "[diagram: <type>]"
+  const typeHintMatch = lastUserMessage.match(/(?:use a|diagram\s*:\s*)(directed-graph|sequence|tree|flowchart|state-machine|entity-relationship|network|timeline|class-diagram|deployment)/);
+  const typeHint = typeHintMatch ? (typeHintMatch[1] as string) : null;
+
   // Detect what kind of diagram to generate based on keywords
   let base: any | null = null;
-  if (lastUserMessage.includes('login') || lastUserMessage.includes('auth')) {
+  if (typeHint === 'state-machine' || lastUserMessage.includes('state-machine')) {
+    base = {
+      type: 'state-machine',
+      title: 'Authentication State Machine',
+      nodes: [
+        { id: 'start', label: 'Start', kind: 'process' },
+        { id: 'login', label: 'Login Requested', kind: 'process' },
+        { id: 'verify', label: 'Verify Credentials', kind: 'service' },
+        { id: 'mfa', label: 'MFA', kind: 'auth' },
+        { id: 'success', label: 'Authenticated', kind: 'auth' },
+        { id: 'fail', label: 'Denied', kind: 'firewall' },
+      ],
+      edges: [
+        { from: 'start', to: 'login', label: 'init' },
+        { from: 'login', to: 'verify', label: 'submit' },
+        { from: 'verify', to: 'mfa', label: 'requires mfa?' },
+        { from: 'mfa', to: 'success', label: 'pass' },
+        { from: 'verify', to: 'success', label: 'pass' },
+        { from: 'verify', to: 'fail', label: 'fail' },
+      ],
+    };
+  } else if (typeHint === 'entity-relationship' || lastUserMessage.includes('database') || lastUserMessage.includes('schema') || lastUserMessage.includes('entity')) {
+    base = {
+      type: 'entity-relationship',
+      title: 'E-Commerce ER Diagram',
+      nodes: [
+        { id: 'user', label: 'User', kind: 'db' },
+        { id: 'product', label: 'Product', kind: 'db' },
+        { id: 'order', label: 'Order', kind: 'db' },
+        { id: 'orderitem', label: 'OrderItem', kind: 'db' },
+        { id: 'payment', label: 'Payment', kind: 'payment' },
+      ],
+      edges: [
+        { from: 'user', to: 'order', label: '1..*' },
+        { from: 'order', to: 'orderitem', label: '1..*' },
+        { from: 'product', to: 'orderitem', label: '1..*' },
+        { from: 'order', to: 'payment', label: '1..1' },
+      ],
+    };
+  } else if (typeHint === 'deployment' || lastUserMessage.includes('kubernetes') || lastUserMessage.includes('container') || lastUserMessage.includes('deployment') || lastUserMessage.includes('orchestration')) {
+    base = {
+      type: 'deployment',
+      title: 'Kubernetes Deployment View',
+      nodes: [
+        { id: 'ingress', label: 'Ingress', kind: 'gateway' },
+        { id: 'servicea', label: 'Service A', kind: 'service' },
+        { id: 'serviceb', label: 'Service B', kind: 'service' },
+        { id: 'podsa', label: 'Pods A', kind: 'container' },
+        { id: 'podsb', label: 'Pods B', kind: 'container' },
+        { id: 'db', label: 'DB', kind: 'db' },
+      ],
+      edges: [
+        { from: 'ingress', to: 'servicea', label: 'route' },
+        { from: 'ingress', to: 'serviceb', label: 'route' },
+        { from: 'servicea', to: 'podsa', label: 'selects' },
+        { from: 'serviceb', to: 'podsb', label: 'selects' },
+        { from: 'servicea', to: 'db', label: 'reads' },
+      ],
+    };
+  } else if (typeHint === 'network' || lastUserMessage.includes('network') || lastUserMessage.includes('topology') || lastUserMessage.includes('api architecture')) {
+    base = {
+      type: 'network',
+      title: 'API Network Topology',
+      nodes: [
+        { id: 'client', label: 'Clients', kind: 'client' },
+        { id: 'gateway', label: 'API Gateway', kind: 'gateway' },
+        { id: 'auth', label: 'Auth', kind: 'auth' },
+        { id: 'users', label: 'Users API', kind: 'api' },
+        { id: 'orders', label: 'Orders API', kind: 'api' },
+        { id: 'payments', label: 'Payments API', kind: 'api' },
+      ],
+      edges: [
+        { from: 'client', to: 'gateway', label: 'HTTPS' },
+        { from: 'gateway', to: 'auth', label: 'JWT verify' },
+        { from: 'gateway', to: 'users', label: 'route' },
+        { from: 'gateway', to: 'orders', label: 'route' },
+        { from: 'gateway', to: 'payments', label: 'route' },
+      ],
+    };
+  } else if (typeHint === 'timeline') {
+    base = {
+      type: 'timeline',
+      title: 'CI/CD Timeline',
+      nodes: [
+        { id: 'commit', label: 'Commit', kind: 'process' },
+        { id: 'ci', label: 'CI', kind: 'process' },
+        { id: 'artifact', label: 'Artifact', kind: 'storage' },
+        { id: 'staging', label: 'Staging', kind: 'service' },
+        { id: 'prod', label: 'Production', kind: 'service' },
+      ],
+      edges: [
+        { from: 'commit', to: 'ci', label: 'build & test' },
+        { from: 'ci', to: 'artifact', label: 'push' },
+        { from: 'artifact', to: 'staging', label: 'deploy' },
+        { from: 'staging', to: 'prod', label: 'promote' },
+      ],
+    };
+  } else if (lastUserMessage.includes('login') || lastUserMessage.includes('auth')) {
     base = {
       type: 'directed-graph',
       title: 'User Authentication Flow',
@@ -168,7 +287,7 @@ function generateStubDiagram(
     };
   }
 
-  if (lastUserMessage.includes('oauth') || lastUserMessage.includes('oauth2')) {
+  if (typeHint === 'sequence' || lastUserMessage.includes('oauth') || lastUserMessage.includes('oauth2')) {
     base = {
       type: 'sequence',
       title: 'OAuth 2.0 Authorization Code Flow',
@@ -192,7 +311,7 @@ function generateStubDiagram(
     };
   }
 
-  if (lastUserMessage.includes('microservice') || lastUserMessage.includes('micro service')) {
+  if (typeHint === 'directed-graph' || lastUserMessage.includes('microservice') || lastUserMessage.includes('micro service')) {
     base = {
       type: 'directed-graph',
       title: 'Microservices Architecture',
@@ -223,7 +342,7 @@ function generateStubDiagram(
     };
   }
 
-  if (lastUserMessage.includes('ci/cd') || lastUserMessage.includes('cicd') || lastUserMessage.includes('pipeline')) {
+  if (typeHint === 'flowchart' || lastUserMessage.includes('ci/cd') || lastUserMessage.includes('cicd') || lastUserMessage.includes('pipeline')) {
     base = {
       type: 'flowchart',
       title: 'CI/CD Pipeline',
@@ -249,7 +368,7 @@ function generateStubDiagram(
     };
   }
 
-  if (lastUserMessage.includes('http') || lastUserMessage.includes('request')) {
+  if (typeHint === 'sequence' || lastUserMessage.includes('http') || lastUserMessage.includes('request')) {
     base = {
       type: 'sequence',
       title: 'HTTP Request Lifecycle',

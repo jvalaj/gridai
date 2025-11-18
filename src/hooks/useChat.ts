@@ -16,6 +16,7 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isInitialMount = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load messages from localStorage on mount
   useEffect(() => {
@@ -53,6 +54,9 @@ export function useChat() {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       // Prepare messages for API - just send the user message
@@ -112,6 +116,7 @@ export function useChat() {
       setMessages(prev => prev.filter(m => m.id !== userMessage.id));
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   }, [messages, isLoading]);
 
@@ -123,12 +128,44 @@ export function useChat() {
     }
   }, []);
 
+  // Cancel ongoing generation
+  const cancelGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      setError('Generation cancelled');
+    }
+  }, []);
+
+  // Delete a specific message pair (user + assistant)
+  const deleteMessage = useCallback((messageId: string) => {
+    setMessages(prev => {
+      // Find the assistant message with this ID
+      const msgIndex = prev.findIndex(m => m.id === messageId);
+      if (msgIndex === -1) return prev;
+      
+      // Find the corresponding user message (the one right before the assistant message)
+      const newMessages = [...prev];
+      if (msgIndex > 0 && newMessages[msgIndex - 1].role === 'user') {
+        // Remove both user and assistant messages
+        newMessages.splice(msgIndex - 1, 2);
+      } else {
+        // Just remove the assistant message
+        newMessages.splice(msgIndex, 1);
+      }
+      return newMessages;
+    });
+  }, []);
+
   return {
     messages,
     isLoading,
     error,
     sendMessage,
     clearMessages,
+    deleteMessage,
+    cancelGeneration,
   };
 }
 

@@ -15,6 +15,17 @@
     @apply border-white/10;
   }
   
+  /* Custom text selection color */
+  ::selection {
+    background-color: rgba(55, 65, 81, 0.99); /* dark gray */
+    color: white;
+  }
+  
+  ::-moz-selection {
+    background-color: rgba(55, 65, 81, 0.99); /* dark gray */
+    color: white;
+  }
+  
   body {
     @apply bg-black text-gray-100 antialiased;
     font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

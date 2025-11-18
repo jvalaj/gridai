@@ -30,8 +30,8 @@ export async function computeElkLayout(spec: DiagramSpec): Promise<ElkLayoutResu
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': direction,
-      'elk.layered.spacing.nodeNodeBetweenLayers': '150',
-      'elk.spacing.nodeNode': '100',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '250', // Increased from 150
+      'elk.spacing.nodeNode': '180', // Increased from 100
       'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -39,8 +39,10 @@ export async function computeElkLayout(spec: DiagramSpec): Promise<ElkLayoutResu
       'elk.edgeRouting': 'ORTHOGONAL', // Orthogonal routing prevents crossings better
       'elk.layered.unnecessaryBendpoints': 'false',
       'elk.layered.mergeEdges': 'false',
-      'elk.spacing.edgeNode': '50', // Space between edges and nodes
-      'elk.spacing.edgeEdge': '30' // Space between edges
+      'elk.spacing.edgeNode': '80', // Increased from 50 - more space between edges and nodes
+      'elk.spacing.edgeEdge': '50', // Increased from 30 - more space between edges
+      'elk.spacing.edgeLabel': '20', // Add space for edge labels
+      'elk.padding': '[top=80,left=80,bottom=80,right=80]' // Add padding around entire diagram
     },
     children: spec.nodes.map((n: any, i: number) => ({ 
       id: n.id, 
