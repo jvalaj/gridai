@@ -42,7 +42,12 @@ function anchorOnRect(a: LayoutPosition, b: LayoutPosition, w: number, h: number
 /**
  * Applies a DiagramSpec to a tldraw editor instance
  */
-export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, promptText?: string) {
+export async function applyDiagramToEditor(
+  editor: Editor, 
+  spec: DiagramSpec, 
+  promptText?: string,
+  notes?: Array<{ title: string; content: string }>
+) {
   console.log('Applying diagram to editor:', spec);
   
   // Clear existing shapes
@@ -56,8 +61,8 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, pr
     editor.createShape({
       type: 'text',
       id: headerId,
-      x: 80,
-      y: 24,
+      x: -600,
+      y: 0,
       props: {
         // Use richText so we stay consistent with tldraw v2
         richText: {
@@ -81,7 +86,7 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, pr
 
   // Try ELK layered layout first; fallback to internal layout
   let nodePositions: Map<string, LayoutPosition>;
-  const yOffset = hasPrompt ? 120 : 0;
+  const yOffset = 0;
   try {
     const res = await computeElkLayout(spec);
     nodePositions = res.nodePositions as Map<string, LayoutPosition>;
@@ -129,10 +134,21 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, pr
         rotation: 0,
         opacity: 1,
         props: {
-          w: nodeWidth,
-          h: nodeHeight,
           color: color,
-          text: labelText,
+          richText: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: labelText
+                  }
+                ]
+              }
+            ]
+          },
           align: 'middle',
           verticalAlign: 'middle',
           font: 'sans',
@@ -176,6 +192,47 @@ export async function applyDiagramToEditor(editor: Editor, spec: DiagramSpec, pr
           font: 'sans',
         },
       });
+    }
+  }
+
+  // Render explanatory notes if provided
+  if (notes && notes.length > 0) {
+    // Calculate diagram bounds to place notes
+    let maxX = 0;
+    nodePositions.forEach(pos => {
+      if (pos.x > maxX) maxX = pos.x;
+    });
+
+    const noteStartX = maxX + 400; // Padding from rightmost node
+    let currentY = yOffset;
+    
+    for (const note of notes) {
+      const noteId = createShapeId();
+      editor.createShape({
+        type: 'note',
+        id: noteId,
+        x: noteStartX,
+        y: currentY,
+        props: {
+          color: 'yellow',
+          richText: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: `${note.title}\n\n${note.content}`
+                  }
+                ]
+              }
+            ]
+          },
+          size: 'm',
+        },
+      });
+      currentY += 250; // Spacing between notes
     }
   }
 

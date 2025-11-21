@@ -17,9 +17,10 @@ interface DiagramCanvasProps {
   spec: DiagramSpec | null;
   messageId?: string; // Add messageId to identify which diagram this is
   prompt?: string;
+  notes?: Array<{ title: string; content: string }>;
 }
 
-export function DiagramCanvas({ spec, messageId, prompt }: DiagramCanvasProps) {
+export function DiagramCanvas({ spec, messageId, prompt, notes }: DiagramCanvasProps) {
   const editorRef = useRef<Editor | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const isRestoringRef = useRef(false);
@@ -58,7 +59,7 @@ export function DiagramCanvas({ spec, messageId, prompt }: DiagramCanvasProps) {
     }
 
     // No cache: generate from spec, then cache a snapshot
-    applyDiagramToEditor(editor, spec, prompt)
+    applyDiagramToEditor(editor, spec, prompt, notes)
       .then(() => {
         try {
           const snap = editor.getSnapshot();

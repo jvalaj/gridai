@@ -223,7 +223,12 @@ export function DiagramPanel({ messages, onQuickPrompt, isMainCanvas = false, se
         )}
 
         {hasDiagram && (
-          <DiagramCanvas spec={selectedSpec} messageId={selectedMessage?.id} prompt={selectedPrompt || undefined} />
+          <DiagramCanvas 
+            spec={selectedSpec} 
+            messageId={selectedMessage?.id} 
+            prompt={selectedPrompt || undefined}
+            notes={selectedMessage?.metadata?.notes}
+          />
         )}
       </div>
       

@@ -65,7 +65,7 @@ export function useChat() {
       ];
 
       // Call OpenAI - returns JSON envelope or raw diagram JSON
-      const payloadString = await sendChat(apiMessages);
+      const payloadString = await sendChat(apiMessages, abortControllerRef.current.signal);
 
       // Parse the response
       let diagramSpec: any = null;
@@ -73,6 +73,7 @@ export function useChat() {
       let plan: any = undefined;
       let layoutOptions: any = undefined;
       let variants: any = undefined;
+      let notes: any = undefined;
       try {
         const parsed = JSON.parse(payloadString);
         if (parsed && parsed.diagram) {
@@ -81,6 +82,7 @@ export function useChat() {
           plan = parsed.plan;
           layoutOptions = parsed.layoutOptions;
           variants = parsed.variants;
+          notes = parsed.notes;
         } else {
           // Backward compatibility when model returns raw diagram spec
           diagramSpec = parsed;
@@ -103,6 +105,7 @@ export function useChat() {
           plan,
           layoutOptions,
           variants,
+          notes,
         }
       };
 

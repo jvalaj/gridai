@@ -48,6 +48,9 @@ When a user asks a technical question, respond with ONLY valid JSON (no prose) u
   },
   "variants": [
     { "title": "Optional variant", "diagram": { /* same schema as above */ } }
+  ],
+  "notes": [
+    { "title": "Key Insight", "content": "Explanation of a specific part of the system." }
   ]
 }
 
@@ -100,7 +103,8 @@ Guidelines:
  * Falls back to stub mode if no API key is provided.
  */
 export async function sendChat(
-  messages: { role: Role; content: string }[]
+  messages: { role: Role; content: string }[],
+  signal?: AbortSignal
 ): Promise<string> {
   // Stub mode: return fake response if forced or no API key
   if (STUB_MODE || !API_KEY || API_KEY === '') {
@@ -130,6 +134,7 @@ export async function sendChat(
         temperature: 0.7,
         response_format: { type: 'json_object' }, // Force JSON output
       }),
+      signal,
     });
 
     if (!response.ok) {

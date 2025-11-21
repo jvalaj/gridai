@@ -41,6 +41,7 @@ export interface AssistantEnvelope {
   plan?: VisualizationPlan; // reasoning and steps
   layoutOptions?: LayoutOptions; // rendering preferences
   variants?: AssistantVariant[]; // optional alternative diagrams
+  notes?: Array<{ title: string; content: string }>; // Explanatory notes to place on canvas
 }
 
 export interface Message {
@@ -58,6 +59,7 @@ export interface Message {
     plan?: VisualizationPlan;
     layoutOptions?: LayoutOptions;
     variants?: AssistantVariant[];
+    notes?: Array<{ title: string; content: string }>;
   };
 }
 
